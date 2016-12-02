@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package com.badlogic.gdx.ai.steer;
 
-import com.badlogic.gdx.Graphics;
+import com.badlogic.gdx.ai.Timepiece;
 import com.badlogic.gdx.ai.steer.behaviors.Alignment;
 import com.badlogic.gdx.ai.steer.behaviors.BlendedSteering;
 import com.badlogic.gdx.ai.steer.behaviors.Cohesion;
@@ -44,8 +44,16 @@ import com.badlogic.gdx.math.Vector;
  * Notes:
  * <ul>
  * <li>Sharing a {@code Proximity} instance among group behaviors having the same owner can save a little time determining the
- * neighbors only once from inside the {@code findNeighbors} method. Especially, {@code Proximity} implementation classes can check
- * the {@link Graphics#getFrameId() frameId} in order to calculate neighbors only once per frame.</li>
+ * neighbors only once from inside the {@code findNeighbors} method. Especially, {@code Proximity} implementation classes can use
+ * {@link Timepiece#getTime() GdxAI.getTimepiece().getTime()} to calculate neighbors only once per frame (assuming delta time is
+ * always greater than 0, if time has changed the frame has changed too). This means that
+ * <ul>
+ * <li>if you forget to {@link Timepiece#update(float) update the timepiece} on each frame the proximity instance will be
+ * calculated only the very first time, which is not what you want of course.</li>
+ * <li>ideally the timepiece should be updated before the proximity is updated by the {@link #findNeighbors(ProximityCallback)}
+ * method.</li>
+ * </ul>
+ * </li>
  * <li>If you want to make sure a Proximity doesn't use as a neighbor a given agent from the list, for example the evader or the
  * owner itself, you have to implement a callback that prevents it from being considered by returning {@code false} from the method
  * {@link ProximityCallback#reportNeighbor(Steerable) reportNeighbor}.</li>

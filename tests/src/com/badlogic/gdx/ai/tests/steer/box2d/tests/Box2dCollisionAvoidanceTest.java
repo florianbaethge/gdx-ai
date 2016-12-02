@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 package com.badlogic.gdx.ai.tests.steer.box2d.tests;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.behaviors.CollisionAvoidance;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.limiters.LinearAccelerationLimiter;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dRadiusProximity;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringEntity;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringTest;
@@ -32,7 +32,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
@@ -53,31 +52,29 @@ public class Box2dCollisionAvoidanceTest extends Box2dSteeringTest {
 	boolean drawDebug;
 	ShapeRenderer shapeRenderer;
 
-	private World world;
 	private Batch spriteBatch;
 
-	public Box2dCollisionAvoidanceTest (SteeringBehaviorTest container) {
+	public Box2dCollisionAvoidanceTest (SteeringBehaviorsTest container) {
 		super(container, "Collision Avoidance");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
 
 		spriteBatch = new SpriteBatch();
 
-		// Instantiate a new World with no gravity
-		world = createWorld();
-
 		characters = new Array<Box2dSteeringEntity>();
 		proximities = new Array<Box2dRadiusProximity>();
 
 		for (int i = 0; i < 60; i++) {
 			final Box2dSteeringEntity character = createSteeringEntity(world, container.greenFish, false);
-			character.setMaxLinearSpeed(1.5f);
-			character.setMaxLinearAcceleration(40);
+			character.setMaxLinearSpeed(2);
+			character.setMaxLinearAcceleration(4);
 
 			Box2dRadiusProximity proximity = new Box2dRadiusProximity(character, world,
 				character.getBoundingRadius() * 4);
@@ -90,11 +87,11 @@ public class Box2dCollisionAvoidanceTest extends Box2dSteeringTest {
 				.setFaceEnabled(false) //
 				// We don't need a limiter supporting angular components because Face is not used
 				// No need to call setAlignTolerance, setDecelerationRadius and setTimeToTarget for the same reason
-				.setLimiter(new LinearAccelerationLimiter(30)) //
-				.setWanderOffset(60) //
-				.setWanderOrientation(10) //
-				.setWanderRadius(40) //
-				.setWanderRate(MathUtils.PI / 5);
+				.setLimiter(new LinearAccelerationLimiter(5)) //
+				.setWanderOffset(3) //
+				.setWanderOrientation(5) //
+				.setWanderRadius(1) //
+				.setWanderRate(MathUtils.PI2 * 4);
 
 			PrioritySteering<Vector2> prioritySteeringSB = new PrioritySteering<Vector2>(character, 0.0001f);
 			prioritySteeringSB.add(collisionAvoidanceSB);
@@ -116,7 +113,7 @@ public class Box2dCollisionAvoidanceTest extends Box2dSteeringTest {
 			container.skin);
 		detailTable.add(labelMaxLinAcc);
 		detailTable.row();
-		Slider maxLinAcc = new Slider(0, 300, 1, false, container.skin);
+		Slider maxLinAcc = new Slider(0, 30, .1f, false, container.skin);
 		maxLinAcc.setValue(characters.get(0).getMaxLinearAcceleration());
 		maxLinAcc.addListener(new ChangeListener() {
 			@Override
@@ -182,16 +179,22 @@ public class Box2dCollisionAvoidanceTest extends Box2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		float deltaTime = Gdx.graphics.getDeltaTime();
+	public void update () {
+		super.update();
 
-		world.step(deltaTime, 8, 3);
+		// Update characters
+		float deltaTime = GdxAI.getTimepiece().getDeltaTime();
+		for (int i = 0; i < characters.size; i++) {
+			characters.get(i).update(deltaTime);
+		}
+	}
 
+	@Override
+	public void draw () {
 		// Update and draw the character
 		spriteBatch.begin();
 		for (int i = 0; i < characters.size; i++) {
 			Box2dSteeringEntity character = characters.get(i);
-			character.update(deltaTime);
 			character.draw(spriteBatch);
 		}
 		spriteBatch.end();
@@ -210,8 +213,8 @@ public class Box2dCollisionAvoidanceTest extends Box2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
-		world.dispose();
 		spriteBatch.dispose();
 	}
 

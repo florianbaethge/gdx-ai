@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
 import com.badlogic.gdx.ai.steer.behaviors.Interpose;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -31,9 +31,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 
 /** A class to test and experiment with the {@link Interpose} behavior.
  * 
@@ -44,12 +44,14 @@ public class Scene2dInterposeTest extends Scene2dSteeringTest {
 
 	Interpose<Vector2> interposeSB;
 
-	public Scene2dInterposeTest (SteeringBehaviorTest container) {
+	public Scene2dInterposeTest (SteeringBehaviorsTest container) {
 		super(container, "Interpose");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+		
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -88,7 +90,7 @@ public class Scene2dInterposeTest extends Scene2dSteeringTest {
 			.setWanderOffset(110) //
 			.setWanderOrientation(MathUtils.random(MathUtils.PI2)) //
 			.setWanderRadius(64) //
-			.setWanderRate(MathUtils.PI / 6);
+			.setWanderRate(MathUtils.PI2 * 3.5f);
 		c1.setSteeringBehavior(wanderSB1);
 
 		Wander<Vector2> wanderSB2 = new Wander<Vector2>(c1) //
@@ -96,12 +98,13 @@ public class Scene2dInterposeTest extends Scene2dSteeringTest {
 			// No need to call setAlignTolerance, setDecelerationRadius and setTimeToTarget for the same reason
 			.setWanderOffset(70) //
 			.setWanderOrientation(MathUtils.random(MathUtils.PI2)) //
-			.setWanderRadius(94).setWanderRate(MathUtils.PI / 4);
+			.setWanderRadius(94). //
+			setWanderRate(MathUtils.PI2 * 5);
 		c2.setSteeringBehavior(wanderSB2);
 
-		table.addActor(character);
-		table.addActor(c1);
-		table.addActor(c2);
+		testTable.addActor(character);
+		testTable.addActor(c1);
+		testTable.addActor(c2);
 
 		Table detailTable = new Table(container.skin);
 
@@ -149,7 +152,7 @@ public class Scene2dInterposeTest extends Scene2dSteeringTest {
 	Vector2 point = new Vector2();
 
 	@Override
-	public void render () {
+	public void draw () {
 		if (drawDebug) {
 			Vector2 posA = interposeSB.getAgentA().getPosition();
 			Vector2 posB = interposeSB.getAgentB().getPosition();
@@ -177,6 +180,7 @@ public class Scene2dInterposeTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

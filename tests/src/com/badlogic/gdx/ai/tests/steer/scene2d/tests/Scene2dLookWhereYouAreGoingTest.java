@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import com.badlogic.gdx.ai.steer.behaviors.Arrive;
 import com.badlogic.gdx.ai.steer.behaviors.BlendedSteering;
 import com.badlogic.gdx.ai.steer.behaviors.LookWhereYouAreGoing;
 import com.badlogic.gdx.ai.steer.limiters.NullLimiter;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dTargetInputProcessor;
@@ -30,8 +30,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.utils.Align;
 
 /** A class to test and experiment with the {@link LookWhereYouAreGoing} behavior.
  * 
@@ -41,12 +41,14 @@ public class Scene2dLookWhereYouAreGoingTest extends Scene2dSteeringTest {
 	SteeringActor character;
 	SteeringActor target;
 
-	public Scene2dLookWhereYouAreGoingTest (SteeringBehaviorTest container) {
+	public Scene2dLookWhereYouAreGoingTest (SteeringBehaviorsTest container) {
 		super(container, "Look Where You're Going");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		character = new SteeringActor(container.badlogicSmall, true);
 		character.setPosition(container.stageWidth / 2, container.stageHeight / 2, Align.center);
 		character.setMaxLinearAcceleration(100);
@@ -75,8 +77,8 @@ public class Scene2dLookWhereYouAreGoingTest extends Scene2dSteeringTest {
 			.add(lookWhereYouAreGoingSB, 1f);
 		character.setSteeringBehavior(blendedSteering);
 
-		table.addActor(character);
-		table.addActor(target);
+		testTable.addActor(character);
+		testTable.addActor(target);
 
 		Table detailTable = new Table(container.skin);
 
@@ -141,11 +143,12 @@ public class Scene2dLookWhereYouAreGoingTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 	}
 
 	@Override
 	public void dispose () {
+		super.dispose();
 	}
 
 }

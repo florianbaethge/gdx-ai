@@ -20,7 +20,7 @@ allprojects {
 
 ext {
 	projectGroup = "gdx-ai"
-	gdxVersion = '1.3.2-SNAPSHOT'
+	gdxVersion = '1.9.2'
 }
 
 /** needed to disable Java 8 doclint which throws errors **/
@@ -35,7 +35,7 @@ if (JavaVersion.current().isJava8Compatible()) {
 project(":gdx-ai") {
     apply from : '../publish.gradle'
 
-	dependencies {
+    dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
     }
 }

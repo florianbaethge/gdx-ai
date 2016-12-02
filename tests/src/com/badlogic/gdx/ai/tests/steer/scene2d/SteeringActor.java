@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,14 @@ package com.badlogic.gdx.ai.tests.steer.scene2d;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
+import com.badlogic.gdx.utils.Align;
 
 /** A SteeringActor is a scene2d {@link Actor} implementing the {@link Steerable} interface.
  * 
@@ -84,6 +85,11 @@ public class SteeringActor extends Actor implements Steerable<Vector2> {
 	}
 
 	@Override
+	public void setOrientation (float orientation) {
+		setRotation(orientation * MathUtils.radiansToDegrees);
+	}
+
+	@Override
 	public Vector2 getLinearVelocity () {
 		return linearVelocity;
 	}
@@ -91,6 +97,10 @@ public class SteeringActor extends Actor implements Steerable<Vector2> {
 	@Override
 	public float getAngularVelocity () {
 		return angularVelocity;
+	}
+
+	public void setAngularVelocity (float angularVelocity) {
+		this.angularVelocity = angularVelocity;
 	}
 
 	@Override
@@ -109,20 +119,18 @@ public class SteeringActor extends Actor implements Steerable<Vector2> {
 	}
 
 	@Override
-	public Vector2 newVector () {
-		return new Vector2();
+	public Location<Vector2> newLocation () {
+		return new Scene2dLocation();
 	}
 
 	@Override
 	public float vectorToAngle (Vector2 vector) {
-		return (float)Math.atan2(-vector.x, vector.y);
+		return Scene2dSteeringUtils.vectorToAngle(vector);
 	}
 
 	@Override
 	public Vector2 angleToVector (Vector2 outVector, float angle) {
-		outVector.x = -(float)Math.sin(angle);
-		outVector.y = (float)Math.cos(angle);
-		return outVector;
+		return Scene2dSteeringUtils.angleToVector(outVector, angle);
 	}
 
 	@Override
@@ -165,6 +173,16 @@ public class SteeringActor extends Actor implements Steerable<Vector2> {
 		this.maxAngularAcceleration = maxAngularAcceleration;
 	}
 
+	@Override
+	public float getZeroLinearSpeedThreshold () {
+		return 0.001f;
+	}
+
+	@Override
+	public void setZeroLinearSpeedThreshold (float value) {
+		throw new UnsupportedOperationException();
+	}
+
 	public boolean isIndependentFacing () {
 		return independentFacing;
 	}
@@ -187,7 +205,7 @@ public class SteeringActor extends Actor implements Steerable<Vector2> {
 		if (steeringBehavior != null) {
 
 			// Calculate steering acceleration
-			steeringBehavior.steer(steeringOutput);
+			steeringBehavior.calculateSteering(steeringOutput);
 
 			/*
 			 * Here you might want to add a motor control layer filtering steering accelerations.
@@ -229,7 +247,7 @@ public class SteeringActor extends Actor implements Steerable<Vector2> {
 			angularVelocity += steering.angular * time;
 		} else {
 			// If we haven't got any velocity, then we can do nothing.
-			if (!linearVelocity.isZero(MathUtils.FLOAT_ROUNDING_ERROR)) {
+			if (!linearVelocity.isZero(getZeroLinearSpeedThreshold())) {
 				float newOrientation = vectorToAngle(linearVelocity);
 				angularVelocity = (newOrientation - getRotation() * MathUtils.degreesToRadians) * time; // this is superfluous if independentFacing is always true
 				setRotation(newOrientation * MathUtils.radiansToDegrees);

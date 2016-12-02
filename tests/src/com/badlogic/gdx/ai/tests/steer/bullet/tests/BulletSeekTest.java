@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.badlogic.gdx.ai.tests.steer.bullet.tests;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.Seek;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
 import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
@@ -35,13 +35,13 @@ public class BulletSeekTest extends BulletSteeringTest {
 	SteeringBulletEntity character;
 	SteeringBulletEntity target;
 
-	public BulletSeekTest (SteeringBehaviorTest container) {
+	public BulletSeekTest (SteeringBehaviorsTest container) {
 		super(container, "Seek");
 	}
 
 	@Override
-	public void create (Table table) {
-		super.create(table);
+	public void create () {
+		super.create();
 
 		BulletEntity ground = world.add("ground", 0f, 0f, 0f);
 		ground.setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
@@ -51,8 +51,8 @@ public class BulletSeekTest extends BulletSteeringTest {
 		BulletEntity characterBase = world.add("capsule", new Matrix4());
 
 		character = new SteeringBulletEntity(characterBase);
-		character.setMaxLinearSpeed(80);
-		character.setMaxLinearAcceleration(8000);
+		character.setMaxLinearSpeed(50);
+		character.setMaxLinearAcceleration(200);
 
 		BulletEntity targetBase = world.add("staticbox", new Matrix4().setToTranslation(new Vector3(5f, 1.5f, 5f)));
 		targetBase.body.setCollisionFlags(targetBase.body.getCollisionFlags()
@@ -67,22 +67,27 @@ public class BulletSeekTest extends BulletSteeringTest {
 		Table detailTable = new Table(container.skin);
 
 		detailTable.row();
-		addMaxLinearAccelerationController(detailTable, character, 0, 20000, 100);
+		addMaxLinearAccelerationController(detailTable, character, 0, 2000, 100);
 
 		detailTable.row();
 		addSeparator(detailTable);
 
 		detailTable.row();
-		addMaxLinearSpeedController(detailTable, character, 0, 250, 1);
+		addMaxLinearSpeedController(detailTable, character, 0, 200, 1);
 
 		detailWindow = createDetailWindow(detailTable);
 	}
 
 	@Override
-	public void render () {
-		character.update(Gdx.graphics.getDeltaTime());
+	public void update () {
+		character.update(GdxAI.getTimepiece().getDeltaTime());
 
-		super.render(true);
+		super.update();
+	}
+
+	@Override
+	public void draw () {
+		super.draw();
 	}
 
 	@Override

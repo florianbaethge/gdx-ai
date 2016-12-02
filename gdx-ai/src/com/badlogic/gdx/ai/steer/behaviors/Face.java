@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.badlogic.gdx.ai.steer.behaviors;
 import com.badlogic.gdx.ai.steer.Limiter;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** {@code Face} behavior makes the owner look at its target. It delegates to the {@link ReachOrientation} behavior to perform the
@@ -39,12 +39,12 @@ public class Face<T extends Vector<T>> extends ReachOrientation<T> {
 	/** Creates a {@code Face} behavior for the specified owner and target.
 	 * @param owner the owner of this behavior
 	 * @param target the target of this behavior. */
-	public Face (Steerable<T> owner, Steerable<T> target) {
+	public Face (Steerable<T> owner, Location<T> target) {
 		super(owner, target);
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		return face(steering, target.getPosition());
 	}
 
@@ -53,7 +53,7 @@ public class Face<T extends Vector<T>> extends ReachOrientation<T> {
 		T toTarget = steering.linear.set(targetPosition).sub(owner.getPosition());
 
 		// Check for a zero direction, and return no steering if so
-		if (toTarget.isZero(MathUtils.FLOAT_ROUNDING_ERROR)) return steering.setZero();
+		if (toTarget.isZero(getActualLimiter().getZeroLinearSpeedThreshold())) return steering.setZero();
 
 		// Calculate the orientation to face the target
 		float orientation = owner.vectorToAngle(toTarget);
@@ -88,7 +88,7 @@ public class Face<T extends Vector<T>> extends ReachOrientation<T> {
 	}
 
 	@Override
-	public Face<T> setTarget (Steerable<T> target) {
+	public Face<T> setTarget (Location<T> target) {
 		this.target = target;
 		return this;
 	}

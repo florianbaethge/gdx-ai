@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.limiters.LinearAccelerationLimiter;
 import com.badlogic.gdx.ai.steer.proximities.RadiusProximity;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -49,12 +49,14 @@ public class Scene2dCollisionAvoidanceTest extends Scene2dSteeringTest {
 	boolean drawDebug;
 	ShapeRenderer shapeRenderer;
 
-	public Scene2dCollisionAvoidanceTest (SteeringBehaviorTest container) {
+	public Scene2dCollisionAvoidanceTest (SteeringBehaviorsTest container) {
 		super(container, "Collision Avoidance");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -80,9 +82,9 @@ public class Scene2dCollisionAvoidanceTest extends Scene2dSteeringTest {
 				// No need to call setAlignTolerance, setDecelerationRadius and setTimeToTarget for the same reason
 				.setLimiter(new LinearAccelerationLimiter(30)) //
 				.setWanderOffset(60) //
-				.setWanderOrientation(10) //
+				.setWanderOrientation(0) //
 				.setWanderRadius(40) //
-				.setWanderRate(MathUtils.PI / 5);
+				.setWanderRate(MathUtils.PI2 * 4);
 
 			PrioritySteering<Vector2> prioritySteeringSB = new PrioritySteering<Vector2>(character, 0.0001f);
 			prioritySteeringSB.add(collisionAvoidanceSB);
@@ -91,8 +93,9 @@ public class Scene2dCollisionAvoidanceTest extends Scene2dSteeringTest {
 			character.setSteeringBehavior(prioritySteeringSB);
 
 			setRandomNonOverlappingPosition(character, characters, 5);
+			setRandomOrientation(character);
 
-			table.addActor(character);
+			testTable.addActor(character);
 
 			characters.add(character);
 		}
@@ -172,7 +175,7 @@ public class Scene2dCollisionAvoidanceTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 		if (drawDebug) {
 			Steerable<Vector2> steerable = characters.get(0);
 			shapeRenderer.begin(ShapeType.Line);
@@ -184,6 +187,7 @@ public class Scene2dCollisionAvoidanceTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

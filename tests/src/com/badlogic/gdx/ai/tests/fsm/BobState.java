@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.badlogic.gdx.ai.tests.fsm;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.fsm.State;
-import com.badlogic.gdx.ai.msg.MessageDispatcher;
+import com.badlogic.gdx.ai.msg.MessageManager;
 import com.badlogic.gdx.ai.msg.Telegram;
 
 /** @author davebaol */
@@ -71,7 +71,7 @@ public enum BobState implements State<Bob> {
 				bob.setLocation(Location.SHACK);
 
 				// Let Elsa know I'm home
-				MessageDispatcher.getInstance().dispatchMessage( //
+				MessageManager.getInstance().dispatchMessage( //
 					0.0f, // time delay
 					bob, // ID of sender
 					bob.elsa, // ID of recipient
@@ -102,8 +102,7 @@ public enum BobState implements State<Bob> {
 		public boolean onMessage (Bob bob, Telegram telegram) {
 			if (telegram.message == MessageType.STEW_READY) {
 
-				System.out.println("Message handled by " + bob.getClass().getSimpleName() + " at time: "
-					+ MessageDispatcher.getCurrentTime());
+				talk(bob, "Message STEW_READY handled at time: " + GdxAI.getTimepiece().getTime());
 
 				talk(bob, "Okay Hun, ahm a comin'!");
 
@@ -201,7 +200,7 @@ public enum BobState implements State<Bob> {
 	}
 
 	protected void talk (Bob bob, String msg) {
-		Gdx.app.log(bob.getClass().getSimpleName(), msg);
+		GdxAI.getLogger().info(bob.getClass().getSimpleName(), msg);
 	}
 
 }

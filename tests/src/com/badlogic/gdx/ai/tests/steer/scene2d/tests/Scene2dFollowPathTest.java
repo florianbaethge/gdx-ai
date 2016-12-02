@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
-import com.badlogic.gdx.ai.steer.paths.LinePath;
-import com.badlogic.gdx.ai.steer.paths.LinePath.LinePathParam;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -33,9 +33,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 
 /** A class to test and experiment with the {@link FollowPath} behavior.
@@ -54,13 +54,15 @@ public class Scene2dFollowPathTest extends Scene2dSteeringTest {
 	final boolean openPath;
 	Slider pathOffset;
 
-	public Scene2dFollowPathTest (SteeringBehaviorTest container, boolean openPath) {
+	public Scene2dFollowPathTest (SteeringBehaviorsTest container, boolean openPath) {
 		super(container, "Follow " + (openPath ? "Open" : "Closed") + " Path");
 		this.openPath = openPath;
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 		shapeRenderer = new ShapeRenderer();
 
@@ -95,7 +97,7 @@ public class Scene2dFollowPathTest extends Scene2dSteeringTest {
 
 		character.setSteeringBehavior(followPathSB);
 
-		table.addActor(character);
+		testTable.addActor(character);
 
 		character.setPosition(wayPoints.first().x, wayPoints.first().y, Align.center);
 
@@ -197,7 +199,7 @@ public class Scene2dFollowPathTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 		// Draw path
 		shapeRenderer.begin(ShapeType.Line);
 		shapeRenderer.setColor(0, 1, 0, 1);
@@ -219,6 +221,7 @@ public class Scene2dFollowPathTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

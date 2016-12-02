@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,21 @@
 
 package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Ray;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.RaycastCollisionDetector;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.limiters.LinearAccelerationLimiter;
-import com.badlogic.gdx.ai.steer.rays.CentralRayWithWhiskersConfiguration;
-import com.badlogic.gdx.ai.steer.rays.ParallelSideRayConfiguration;
-import com.badlogic.gdx.ai.steer.rays.RayConfigurationBase;
-import com.badlogic.gdx.ai.steer.rays.SingleRayConfiguration;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.steer.utils.rays.CentralRayWithWhiskersConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.ParallelSideRayConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
+import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dRaycastCollisionDetector;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
+import com.badlogic.gdx.ai.utils.Ray;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
@@ -49,9 +49,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 
 /** A class to test and experiment with the {@link RaycastObstacleAvoidance} behavior.
  * 
@@ -70,12 +70,14 @@ public class Scene2dRaycastObstacleAvoidanceTest extends Scene2dSteeringTest {
 	private int[] walls_hw;
 	private int[] walls_hh;
 
-	public Scene2dRaycastObstacleAvoidanceTest (SteeringBehaviorTest container) {
+	public Scene2dRaycastObstacleAvoidanceTest (SteeringBehaviorsTest container) {
 		super(container, "Raycast Obstacle Avoidance");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -111,7 +113,7 @@ public class Scene2dRaycastObstacleAvoidanceTest extends Scene2dSteeringTest {
 			.setWanderOffset(60) //
 			.setWanderOrientation(10) //
 			.setWanderRadius(40) //
-			.setWanderRate(MathUtils.PI / 5);
+			.setWanderRate(MathUtils.PI2 * 4);
 
 		PrioritySteering<Vector2> prioritySteeringSB = new PrioritySteering<Vector2>(character, 0.0001f) //
 			.add(raycastObstacleAvoidanceSB) //
@@ -119,7 +121,7 @@ public class Scene2dRaycastObstacleAvoidanceTest extends Scene2dSteeringTest {
 
 		character.setSteeringBehavior(prioritySteeringSB);
 
-		table.addActor(character);
+		testTable.addActor(character);
 
 		inputProcessor = null;
 
@@ -187,11 +189,14 @@ public class Scene2dRaycastObstacleAvoidanceTest extends Scene2dSteeringTest {
 		detailWindow = createDetailWindow(detailTable);
 	}
 
-	private Vector2 tmp = new Vector2();
+	@Override
+	public void update () {
+		super.update();
+		world.step(GdxAI.getTimepiece().getDeltaTime(), 8, 3);
+	}
 
 	@Override
-	public void render () {
-		world.step(Gdx.graphics.getDeltaTime(), 8, 3);
+	public void draw () {
 
 		// Draw the walls
 		for (int i = 0; i < walls.length; i++) {
@@ -206,7 +211,7 @@ public class Scene2dRaycastObstacleAvoidanceTest extends Scene2dSteeringTest {
 			shapeRenderer.setTransformMatrix(transform);
 			for (int i = 0; i < rays.length; i++) {
 				Ray<Vector2> ray = rays[i];
-				shapeRenderer.line(ray.origin, tmp.set(ray.origin).add(ray.direction));
+				shapeRenderer.line(ray.start, ray.end);
 			}
 			shapeRenderer.end();
 		}
@@ -214,6 +219,7 @@ public class Scene2dRaycastObstacleAvoidanceTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 		world.dispose();
 	}

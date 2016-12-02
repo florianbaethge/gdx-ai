@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -101,9 +101,9 @@ public class PriorityQueue<E extends Comparable<E>> {
 	 * @return true if the element was added to this queue, else false
 	 * @throws ClassCastException if the specified element cannot be compared with elements currently in this priority queue
 	 *            according to the priority queue's ordering
-	 * @throws NullPointerException if the specified element is null */
+	 * @throws IllegalArgumentException if the specified element is null */
 	public boolean add (E e) {
-		if (e == null) throw new NullPointerException();
+		if (e == null) throw new IllegalArgumentException("Element cannot be null.");
 		if (uniqueness && !set.add(e)) return false;
 		int i = size;
 		if (i >= queue.length) growToSize(i + 1);

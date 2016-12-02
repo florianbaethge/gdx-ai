@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import com.badlogic.gdx.ai.msg.Telegram;
 public class Elsa implements Telegraph {
 
 	// an instance of the state machine class
-	private StateMachine<Elsa> stateMachine;
+	private StateMachine<Elsa, ElsaState> stateMachine;
 
 	// is she presently cooking?
 	boolean cooking;
@@ -37,7 +37,7 @@ public class Elsa implements Telegraph {
 	}
 
 	public Elsa (Bob bob) {
-		stateMachine = new DefaultStateMachine<Elsa>(this, ElsaState.DO_HOUSE_WORK, ElsaState.GLOBAL_STATE);
+		stateMachine = new DefaultStateMachine<Elsa, ElsaState>(this, ElsaState.DO_HOUSE_WORK, ElsaState.GLOBAL_STATE);
 		this.bob = bob;
 	}
 
@@ -50,7 +50,7 @@ public class Elsa implements Telegraph {
 		stateMachine.update();
 	}
 
-	public StateMachine<Elsa> getStateMachine () {
+	public StateMachine<Elsa, ElsaState> getStateMachine () {
 		return stateMachine;
 	}
 

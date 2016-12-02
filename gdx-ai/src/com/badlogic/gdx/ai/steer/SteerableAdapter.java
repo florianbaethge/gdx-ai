@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.badlogic.gdx.ai.steer;
 
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** An adapter class for {@link Steerable}. You can derive from this and only override what you are interested in. For example,
@@ -25,6 +26,15 @@ import com.badlogic.gdx.math.Vector;
  * 
  * @author davebaol */
 public class SteerableAdapter<T extends Vector<T>> implements Steerable<T> {
+
+	@Override
+	public float getZeroLinearSpeedThreshold () {
+		return 0.001f;
+	}
+
+	@Override
+	public void setZeroLinearSpeedThreshold (float value) {
+	}
 
 	@Override
 	public float getMaxLinearSpeed () {
@@ -73,6 +83,10 @@ public class SteerableAdapter<T extends Vector<T>> implements Steerable<T> {
 	}
 
 	@Override
+	public void setOrientation (float orientation) {
+	}
+
+	@Override
 	public T getLinearVelocity () {
 		return null;
 	}
@@ -97,7 +111,7 @@ public class SteerableAdapter<T extends Vector<T>> implements Steerable<T> {
 	}
 
 	@Override
-	public T newVector () {
+	public Location<T> newLocation () {
 		return null;
 	}
 

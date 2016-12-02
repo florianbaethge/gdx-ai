@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.Separation;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.proximities.FieldOfViewProximity;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -37,9 +37,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 
 /** A class to test and experiment with flocking behavior which consists of {@link Separation}, {@link Cohesion} and
@@ -56,12 +56,14 @@ public class Scene2dFlockingTest extends Scene2dSteeringTest {
 	
 	float separationDecayCoefficient;
 
-	public Scene2dFlockingTest (SteeringBehaviorTest container) {
+	public Scene2dFlockingTest (SteeringBehaviorsTest container) {
 		super(container, "Flocking");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -115,7 +117,7 @@ public class Scene2dFlockingTest extends Scene2dSteeringTest {
 				.setWanderOffset(60) //
 				.setWanderOrientation(10) //
 				.setWanderRadius(40) //
-				.setWanderRate(MathUtils.PI / 5);
+				.setWanderRate(MathUtils.PI2 * 4);
 
 			PrioritySteering<Vector2> prioritySteeringSB = new PrioritySteering<Vector2>(character, 0.0001f) //
 				.add(blendedSteering) //
@@ -123,7 +125,7 @@ public class Scene2dFlockingTest extends Scene2dSteeringTest {
 
 			character.setSteeringBehavior(prioritySteeringSB);
 
-			table.addActor(character);
+			testTable.addActor(character);
 
 			characters.add(character);
 		}
@@ -294,7 +296,7 @@ public class Scene2dFlockingTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 		if (drawDebug) {
 			Steerable<Vector2> steerable = characters.get(0);
 			shapeRenderer.begin(ShapeType.Line);
@@ -308,6 +310,7 @@ public class Scene2dFlockingTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

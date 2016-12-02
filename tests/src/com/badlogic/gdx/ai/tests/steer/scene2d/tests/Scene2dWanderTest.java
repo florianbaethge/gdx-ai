@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -30,9 +30,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 
 /** A class to test and experiment with the {@link Wander} behavior.
  * 
@@ -44,12 +44,14 @@ public class Scene2dWanderTest extends Scene2dSteeringTest {
 	SteeringActor character;
 	Wander<Vector2> wanderSB;
 
-	public Scene2dWanderTest (SteeringBehaviorTest container) {
+	public Scene2dWanderTest (SteeringBehaviorsTest container) {
 		super(container, "Wander");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -68,10 +70,10 @@ public class Scene2dWanderTest extends Scene2dSteeringTest {
 			.setWanderOffset(90) //
 			.setWanderOrientation(10) //
 			.setWanderRadius(40) //
-			.setWanderRate(MathUtils.PI / 5);
+			.setWanderRate(MathUtils.PI2 * 4);
 		character.setSteeringBehavior(wanderSB);
 
-		table.addActor(character);
+		testTable.addActor(character);
 
 		character.setPosition(container.stageWidth / 2, container.stageHeight / 2, Align.center);
 
@@ -122,7 +124,7 @@ public class Scene2dWanderTest extends Scene2dSteeringTest {
 		final Label labelWanderRate = new Label("Wander Rate [" + wanderSB.getWanderRate() + "]", container.skin);
 		detailTable.add(labelWanderRate);
 		detailTable.row();
-		Slider wanderRate = new Slider(0, MathUtils.PI2, MathUtils.degreesToRadians, false, container.skin);
+		Slider wanderRate = new Slider(0, MathUtils.PI2 * 10, MathUtils.degreesToRadians, false, container.skin);
 		wanderRate.setValue(wanderSB.getWanderRate());
 		wanderRate.addListener(new ChangeListener() {
 			@Override
@@ -159,7 +161,7 @@ public class Scene2dWanderTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 		if (drawDebug) {
 			// Draw circle
 			shapeRenderer.begin(ShapeType.Line);
@@ -177,6 +179,7 @@ public class Scene2dWanderTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

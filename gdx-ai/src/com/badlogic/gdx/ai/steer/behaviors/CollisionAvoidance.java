@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,14 +56,14 @@ public class CollisionAvoidance<T extends Vector<T>> extends GroupBehavior<T> im
 	public CollisionAvoidance (Steerable<T> owner, Proximity<T> proximity) {
 		super(owner, proximity);
 
-		this.firstRelativePosition = owner.newVector();
-		this.firstRelativeVelocity = owner.newVector();
+		this.firstRelativePosition = newVector(owner);
+		this.firstRelativeVelocity = newVector(owner);
 
-		this.relativeVelocity = owner.newVector();
+		this.relativeVelocity = newVector(owner);
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		shortestTime = Float.POSITIVE_INFINITY;
 		firstNeighbor = null;
 		firstMinSeparation = 0;
@@ -74,6 +74,11 @@ public class CollisionAvoidance<T extends Vector<T>> extends GroupBehavior<T> im
 		int neighborCount = proximity.findNeighbors(this);
 
 		// If we have no target, then return no steering acceleration
+		//
+		// NOTE: You might think that the condition below always evaluates to true since
+		// firstNeighbor has been set to null when entering this method. In fact, we have just
+		// executed findNeighbors(this) that has possibly set firstNeighbor to a non null value
+		// through the method reportNeighbor defined below.
 		if (neighborCount == 0 || firstNeighbor == null) return steering.setZero();
 
 		// If we're going to hit exactly, or if we're already
@@ -102,6 +107,13 @@ public class CollisionAvoidance<T extends Vector<T>> extends GroupBehavior<T> im
 		relativePosition.set(neighbor.getPosition()).sub(owner.getPosition());
 		relativeVelocity.set(neighbor.getLinearVelocity()).sub(owner.getLinearVelocity());
 		float relativeSpeed2 = relativeVelocity.len2();
+
+		// Collision can't happen when the agents have the same linear velocity.
+		// Also, note that timeToCollision would be NaN due to the indeterminate form 0/0 and,
+		// since any comparison involving NaN returns false, it would become the shortestTime,
+		// so defeating the algorithm.
+		if (relativeSpeed2 == 0) return false;
+		
 		float timeToCollision = -relativePosition.dot(relativeVelocity) / relativeSpeed2;
 
 		// If timeToCollision is negative, i.e. the owner is already moving away from the the neighbor,

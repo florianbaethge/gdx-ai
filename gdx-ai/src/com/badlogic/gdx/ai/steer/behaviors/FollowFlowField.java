@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ public class FollowFlowField<T extends Vector<T>> extends SteeringBehavior<T> {
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		// Predictive or non-predictive behavior?
 		T location = (predictionTime == 0) ?
 		// Use the current position of the owner
@@ -79,15 +79,17 @@ public class FollowFlowField<T extends Vector<T>> extends SteeringBehavior<T> {
 
 		// Retrieve the flow vector at the specified location
 		T flowVector = flowField.lookup(location);
-
-		Limiter actualLimiter = getActualLimiter();
-
+		
 		// Clear both linear and angular components
 		steering.setZero();
 
-		// Calculate linear acceleration
-		steering.linear.mulAdd(flowVector, actualLimiter.getMaxLinearSpeed()).sub(owner.getLinearVelocity())
-			.limit(actualLimiter.getMaxLinearAcceleration());
+		if (flowVector != null && !flowVector.isZero()) {
+			Limiter actualLimiter = getActualLimiter();
+
+			// Calculate linear acceleration
+			steering.linear.mulAdd(flowVector, actualLimiter.getMaxLinearSpeed()).sub(owner.getLinearVelocity())
+				.limit(actualLimiter.getMaxLinearAcceleration());
+		}
 
 		// Output steering
 		return steering;

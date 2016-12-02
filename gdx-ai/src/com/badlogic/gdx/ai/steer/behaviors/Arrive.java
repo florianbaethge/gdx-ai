@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.steer.Limiter;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** {@code Arrive} behavior moves the agent towards a target position. It is similar to seek but it attempts to arrive at the target
@@ -43,7 +44,7 @@ import com.badlogic.gdx.math.Vector;
 public class Arrive<T extends Vector<T>> extends SteeringBehavior<T> {
 
 	/** The target to arrive to. */
-	protected Steerable<T> target;
+	protected Location<T> target;
 
 	/** The tolerance for arriving at the target. It lets the owner get near enough to the target without letting small errors keep
 	 * it in motion. */
@@ -64,13 +65,13 @@ public class Arrive<T extends Vector<T>> extends SteeringBehavior<T> {
 	/** Creates an {@code Arrive} behavior for the specified owner and target.
 	 * @param owner the owner of this behavior
 	 * @param target the target of this behavior */
-	public Arrive (Steerable<T> owner, Steerable<T> target) {
+	public Arrive (Steerable<T> owner, Location<T> target) {
 		super(owner);
 		this.target = target;
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		return arrive(steering, target.getPosition());
 	}
 
@@ -104,13 +105,13 @@ public class Arrive<T extends Vector<T>> extends SteeringBehavior<T> {
 	}
 
 	/** Returns the target to arrive to. */
-	public Steerable<T> getTarget () {
+	public Location<T> getTarget () {
 		return target;
 	}
 
 	/** Sets the target to arrive to.
 	 * @return this behavior for chaining. */
-	public Arrive<T> setTarget (Steerable<T> target) {
+	public Arrive<T> setTarget (Location<T> target) {
 		this.target = target;
 		return this;
 	}

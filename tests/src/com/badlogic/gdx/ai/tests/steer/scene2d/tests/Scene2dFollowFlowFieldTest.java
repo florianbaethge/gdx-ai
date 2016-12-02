@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
 import com.badlogic.gdx.ai.steer.behaviors.FollowFlowField;
 import com.badlogic.gdx.ai.steer.behaviors.FollowFlowField.FlowField;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -31,9 +31,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 
 /** A class to test and experiment with the {@link FollowFlowField} behavior.
@@ -47,12 +47,14 @@ public class Scene2dFollowFlowFieldTest extends Scene2dSteeringTest {
 
 	RandomFlowField2DWithRepulsors flowField;
 
-	public Scene2dFollowFlowFieldTest (SteeringBehaviorTest container) {
+	public Scene2dFollowFlowFieldTest (SteeringBehaviorsTest container) {
 		super(container, "Follow Flow Field");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -63,7 +65,7 @@ public class Scene2dFollowFlowFieldTest extends Scene2dSteeringTest {
 			SteeringActor obstacle = new SteeringActor(container.cloud, false);
 			setRandomNonOverlappingPosition(obstacle, obstacles, 100);
 			obstacles.add(obstacle);
-			table.addActor(obstacle);
+			testTable.addActor(obstacle);
 		}
 
 		character = new SteeringActor(container.badlogicSmall, false);
@@ -74,7 +76,7 @@ public class Scene2dFollowFlowFieldTest extends Scene2dSteeringTest {
 		final FollowFlowField<Vector2> followFlowFieldSB = new FollowFlowField<Vector2>(character, flowField);
 		character.setSteeringBehavior(followFlowFieldSB);
 
-		table.addActor(character);
+		testTable.addActor(character);
 
 		character.setPosition(container.stageWidth / 2, container.stageHeight / 2, Align.center);
 
@@ -124,7 +126,7 @@ public class Scene2dFollowFlowFieldTest extends Scene2dSteeringTest {
 	Vector2 tmp2 = new Vector2();
 
 	@Override
-	public void render () {
+	public void draw () {
 		if (drawDebug) {
 			shapeRenderer.begin(ShapeType.Line);
 			shapeRenderer.setColor(0, 1, 0, 1);
@@ -150,6 +152,7 @@ public class Scene2dFollowFlowFieldTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

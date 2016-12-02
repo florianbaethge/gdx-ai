@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ public class MatchVelocity<T extends Vector<T>> extends SteeringBehavior<T> {
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		// Acceleration tries to get to the target velocity without exceeding max acceleration
 		steering.linear.set(target.getLinearVelocity()).sub(owner.getLinearVelocity()).scl(1f / timeToTarget)
 			.limit(getActualLimiter().getMaxLinearAcceleration());

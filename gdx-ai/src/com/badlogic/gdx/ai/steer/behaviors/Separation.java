@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,11 +47,11 @@ public class Separation<T extends Vector<T>> extends GroupBehavior<T> implements
 	public Separation (Steerable<T> owner, Proximity<T> proximity) {
 		super(owner, proximity);
 
-		this.toAgent = owner.newVector();
+		this.toAgent = newVector(owner);
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		steering.setZero();
 
 		linear = steering.linear;

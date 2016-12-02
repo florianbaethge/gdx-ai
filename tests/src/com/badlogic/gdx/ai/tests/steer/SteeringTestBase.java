@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.badlogic.gdx.ai.tests.steer;
 
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.ai.steer.Limiter;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.utils.scene2d.CollapsableWindow;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -31,31 +31,32 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
  * 
  * @author davebaol */
 public abstract class SteeringTestBase {
-	protected SteeringBehaviorTest container;
+	protected SteeringBehaviorsTest container;
 	public String engineName;
-	public String behaviorName;
+	public String testName;
 	protected InputProcessor inputProcessor;
 	protected CollapsableWindow detailWindow;
 
-	public SteeringTestBase (SteeringBehaviorTest container, String engineName, String name) {
-		this(container, engineName, name, null);
+	public SteeringTestBase (SteeringBehaviorsTest container, String engineName, String testName) {
+		this(container, engineName, testName, null);
 	}
 
-	public SteeringTestBase (SteeringBehaviorTest container, String engineName, String behaviorName, InputProcessor inputProcessor) {
+	public SteeringTestBase (SteeringBehaviorsTest container, String engineName, String testName, InputProcessor inputProcessor) {
 		this.container = container;
 		this.engineName = engineName;
-		this.behaviorName = behaviorName;
+		this.testName = testName;
 		this.inputProcessor = inputProcessor;
-
-		// Reset help message
-		container.helpMessage = null;
 	}
 
-	public abstract void create (Table table);
+	public abstract void create ();
 
-	public abstract void render ();
+	public abstract void update ();
+
+	public abstract void draw ();
 
 	public abstract void dispose ();
+
+	public abstract String getHelpMessage();
 
 	public InputProcessor getInputProcessor () {
 		return inputProcessor;
@@ -70,7 +71,7 @@ public abstract class SteeringTestBase {
 	}
 
 	protected CollapsableWindow createDetailWindow (Table table) {
-		CollapsableWindow window = new CollapsableWindow(this.engineName + " " + this.behaviorName, container.skin);
+		CollapsableWindow window = new CollapsableWindow(this.engineName + " " + this.testName, container.skin);
 		window.row();
 		window.add(table);
 		window.pack();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
@@ -43,7 +43,7 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 
 	private static final Quaternion tmpQuaternion = new Quaternion();
 	private static final Matrix4 tmpMatrix4 = new Matrix4();
-	private static final Vector3 tmpVector3 = new Vector3();
+	private final Vector3 tmpVector3 = new Vector3();
 
 	private static final Vector3 ANGULAR_LOCK = new Vector3(0, 1, 0);
 
@@ -80,7 +80,7 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 	public void update (float deltaTime) {
 		if (steeringBehavior != null) {
 			// Calculate steering acceleration
-			steeringBehavior.steer(steeringOutput);
+			steeringBehavior.calculateSteering(steeringOutput);
 
 			/*
 			 * Here you might want to add a motor control layer filtering steering accelerations.
@@ -100,21 +100,23 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 
 		// Update position and linear velocity
 		if (!steeringOutput.linear.isZero()) {
-			body.applyCentralForce(steeringOutput.linear.scl(deltaTime));
+			// this method internally scales the force by deltaTime
+			body.applyCentralForce(steeringOutput.linear);
 			anyAccelerations = true;
 		}
 
 		// Update orientation and angular velocity
 		if (isIndependentFacing()) {
 			if (steeringOutput.angular != 0) {
-				body.applyTorque(tmpVector3.set(0, steeringOutput.angular * deltaTime, 0));
+				// this method internally scales the torque by deltaTime
+				body.applyTorque(tmpVector3.set(0, steeringOutput.angular, 0));
 				anyAccelerations = true;
 			}
 		}
 		else {
 			// If we haven't got any velocity, then we can do nothing.
 			Vector3 linVel = getLinearVelocity();
-			if (!linVel.isZero(MathUtils.FLOAT_ROUNDING_ERROR)) {
+			if (!linVel.isZero(getZeroLinearSpeedThreshold())) {
 				// 
 				// TODO: Commented out!!!
 				// Looks like the code below creates troubles in combination with the applyCentralForce above
@@ -164,6 +166,12 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 	}
 
 	@Override
+	public void setOrientation (float orientation) {
+		transform.setToRotationRad(0, 1, 0, orientation);
+		body.setWorldTransform(transform);
+	}
+
+	@Override
 	public float getOrientation () {
 		transform.getRotation(tmpQuaternion, true);
 		return tmpQuaternion.getYawRad();
@@ -183,7 +191,7 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 	@Override
 	public float getBoundingRadius () {
 		// TODO: this should be calculated via the actual btShape
-		return 1;
+		return .5f;
 	}
 
 	@Override
@@ -197,23 +205,18 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 	}
 
 	@Override
-	public Vector3 newVector () {
-		return new Vector3();
+	public Location<Vector3> newLocation () {
+		return new BulletLocation();
 	}
 
 	@Override
 	public float vectorToAngle (Vector3 vector) {
-//		return (float)Math.atan2(vector.z, vector.x);
-		return (float)Math.atan2(-vector.z, vector.x);
+		return BulletSteeringUtils.vectorToAngle(vector);
 	}
 
 	@Override
 	public Vector3 angleToVector (Vector3 outVector, float angle) {
-//		outVector.set(MathUtils.cos(angle), 0f, MathUtils.sin(angle));
-		outVector.z = -(float)Math.sin(angle);
-		outVector.y = 0;
-		outVector.x = (float)Math.cos(angle);
-		return outVector;
+		return BulletSteeringUtils.angleToVector(outVector, angle);
 	}
 
 	@Override
@@ -260,6 +263,16 @@ public class SteeringBulletEntity extends BulletEntity implements Steerable<Vect
 	@Override
 	public void setMaxAngularAcceleration (float maxAngularAcceleration) {
 		this.maxAngularAcceleration = maxAngularAcceleration;
+	}
+
+	@Override
+	public float getZeroLinearSpeedThreshold () {
+		return 0.001f;
+	}
+
+	@Override
+	public void setZeroLinearSpeedThreshold (float value) {
+		throw new UnsupportedOperationException();
 	}
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import com.badlogic.gdx.ai.steer.Limiter;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.ai.utils.ArithmeticUtils;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** {@code ReachOrientation} tries to align the owner to the target. It pays no attention to the position or velocity of the owner
@@ -39,7 +40,7 @@ import com.badlogic.gdx.math.Vector;
 public class ReachOrientation<T extends Vector<T>> extends SteeringBehavior<T> {
 
 	/** The target to align to. */
-	protected Steerable<T> target;
+	protected Location<T> target;
 
 	/** The tolerance for aligning to the target without letting small errors keep the owner swinging. */
 	protected float alignTolerance;
@@ -59,13 +60,13 @@ public class ReachOrientation<T extends Vector<T>> extends SteeringBehavior<T> {
 	/** Creates a {@code ReachOrientation} behavior for the specified owner and target.
 	 * @param owner the owner of this behavior
 	 * @param target the target. */
-	public ReachOrientation (Steerable<T> owner, Steerable<T> target) {
+	public ReachOrientation (Steerable<T> owner, Location<T> target) {
 		super(owner);
 		this.target = target;
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		return reachOrientation(steering, target.getOrientation());
 	}
 
@@ -76,14 +77,13 @@ public class ReachOrientation<T extends Vector<T>> extends SteeringBehavior<T> {
 	 * @return the calculated steering for chaining. */
 	protected SteeringAcceleration<T> reachOrientation (SteeringAcceleration<T> steering, float targetOrientation) {
 		// Get the rotation direction to the target wrapped to the range [-PI, PI]
-		float rotation = (targetOrientation - owner.getOrientation()) % MathUtils.PI2;
-		if (rotation > MathUtils.PI) rotation -= MathUtils.PI2;
+		float rotation = ArithmeticUtils.wrapAngleAroundZero(targetOrientation - owner.getOrientation());
 
 		// Absolute rotation
 		float rotationSize = rotation < 0f ? -rotation : rotation;
 
 		// Check if we are there, return no steering
-		if (rotationSize < alignTolerance) return steering.setZero();
+		if (rotationSize <= alignTolerance) return steering.setZero();
 
 		Limiter actualLimiter = getActualLimiter();
 
@@ -113,13 +113,13 @@ public class ReachOrientation<T extends Vector<T>> extends SteeringBehavior<T> {
 	}
 
 	/** Returns the target to align to. */
-	public Steerable<T> getTarget () {
+	public Location<T> getTarget () {
 		return target;
 	}
 
 	/** Sets the target to align to.
 	 * @return this behavior for chaining. */
-	public ReachOrientation<T> setTarget (Steerable<T> target) {
+	public ReachOrientation<T> setTarget (Location<T> target) {
 		this.target = target;
 		return this;
 	}

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@
 
 package com.badlogic.gdx.ai.steer.behaviors;
 
+import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.Timepiece;
 import com.badlogic.gdx.ai.steer.Limiter;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector;
 
@@ -44,6 +47,13 @@ import com.badlogic.gdx.math.Vector;
  * independent facing you should explicitly call {@link #setFaceEnabled(boolean) setFaceEnabled(true)} before using Wander
  * behavior.
  * <p>
+ * Note that this behavior internally calls the {@link Timepiece#getTime() GdxAI.getTimepiece().getTime()} method to get the
+ * current AI time and make the {@link #wanderRate} FPS independent. This means that
+ * <ul>
+ * <li>if you forget to {@link Timepiece#update(float) update the timepiece} the wander orientation won't change.</li>
+ * <li>ideally the timepiece should be always updated before this steering behavior runs.</li>
+ * </ul>
+ * <p>
  * This steering behavior can be used to produce a whole range of random motion, from very smooth undulating turns to wild
  * Strictly Ballroom type whirls and pirouettes depending on the size of the circle, its distance from the agent, and the amount
  * of random displacement each frame.
@@ -59,8 +69,11 @@ public class Wander<T extends Vector<T>> extends Face<T> {
 	/** The radius of the wander circle */
 	protected float wanderRadius;
 
-	/** The maximum rate at which the wander orientation can change */
+	/** The rate, expressed in radian per second, at which the wander orientation can change */
 	protected float wanderRate;
+
+	/** The last time the orientation of the wander target has been updated */
+	protected float lastTime;
 
 	/** The current orientation of the wander target */
 	protected float wanderOrientation;
@@ -77,15 +90,19 @@ public class Wander<T extends Vector<T>> extends Face<T> {
 	public Wander (Steerable<T> owner) {
 		super(owner);
 
-		this.internalTargetPosition = owner.newVector();
-		this.wanderCenter = owner.newVector();
+		this.internalTargetPosition = newVector(owner);
+		this.wanderCenter = newVector(owner);
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		// Update the wander orientation
-		// TODO it should be frame rate independent by interpreting wanderRate as a max distance per second.
-		wanderOrientation += MathUtils.randomTriangular(wanderRate);
+		float now = GdxAI.getTimepiece().getTime();
+		if (lastTime > 0) {
+			float delta = now - lastTime;
+			wanderOrientation += MathUtils.randomTriangular(wanderRate * delta);
+		}
+		lastTime = now;
 
 		// Calculate the combined target orientation
 		float targetOrientation = wanderOrientation + owner.getOrientation();
@@ -142,12 +159,12 @@ public class Wander<T extends Vector<T>> extends Face<T> {
 		return this;
 	}
 
-	/** Returns the maximum rate at which the wander orientation can change. */
+	/** Returns the rate, expressed in radian per second, at which the wander orientation can change. */
 	public float getWanderRate () {
 		return wanderRate;
 	}
 
-	/** Sets the maximum rate at which the wander orientation can change.
+	/** Sets the rate, expressed in radian per second, at which the wander orientation can change.
 	 * @return this behavior for chaining. */
 	public Wander<T> setWanderRate (float wanderRate) {
 		this.wanderRate = wanderRate;
@@ -218,7 +235,7 @@ public class Wander<T extends Vector<T>> extends Face<T> {
 	 * for {@code Wander} because owner's orientation is determined by the internal target, which is moving on the wander circle.
 	 * @return this behavior for chaining. */
 	@Override
-	public Wander<T> setTarget (Steerable<T> target) {
+	public Wander<T> setTarget (Location<T> target) {
 		this.target = target;
 		return this;
 	}

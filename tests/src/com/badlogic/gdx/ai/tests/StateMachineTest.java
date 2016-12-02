@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,20 @@
 
 package com.badlogic.gdx.ai.tests;
 
+import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.ai.msg.MessageDispatcher;
+import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.msg.MessageManager;
 import com.badlogic.gdx.ai.tests.fsm.Bob;
 import com.badlogic.gdx.ai.tests.fsm.Elsa;
-import com.badlogic.gdx.ai.tests.utils.GdxAiTest;
+import com.badlogic.gdx.ai.tests.utils.GdxAiTestUtils;
 
 /** A simple test to demonstrate state machines combined with message handling.
  * @author davebaol */
-public class StateMachineTest extends GdxAiTest {
+public class StateMachineTest extends ApplicationAdapter {
 
 	public static void main (String[] argv) {
-		launch(new StateMachineTest());
+		GdxAiTestUtils.launch(new StateMachineTest());
 	}
 
 	Bob bob;
@@ -48,7 +50,11 @@ public class StateMachineTest extends GdxAiTest {
 
 	@Override
 	public void render () {
-		elapsedTime += Gdx.graphics.getRawDeltaTime();
+		float delta = Gdx.graphics.getDeltaTime();
+		elapsedTime += delta;
+
+		// Update time
+		GdxAI.getTimepiece().update(delta);
 
 		if (elapsedTime > 0.8f) {
 			// Update Bob and his wife
@@ -56,7 +62,7 @@ public class StateMachineTest extends GdxAiTest {
 			elsa.update(elapsedTime);
 
 			// Dispatch any delayed messages
-			MessageDispatcher.getInstance().dispatchDelayedMessages();
+			MessageManager.getInstance().update();
 
 			elapsedTime = 0;
 		}

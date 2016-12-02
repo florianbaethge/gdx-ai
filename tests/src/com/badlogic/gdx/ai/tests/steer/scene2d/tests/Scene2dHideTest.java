@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import com.badlogic.gdx.ai.steer.limiters.LinearAccelerationLimiter;
 import com.badlogic.gdx.ai.steer.limiters.NullLimiter;
 import com.badlogic.gdx.ai.steer.proximities.InfiniteProximity;
 import com.badlogic.gdx.ai.steer.proximities.RadiusProximity;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dTargetInputProcessor;
@@ -56,12 +56,14 @@ public class Scene2dHideTest extends Scene2dSteeringTest {
 	Wander<Vector2> wanderSB;
 	boolean hideMode;
 
-	public Scene2dHideTest (SteeringBehaviorTest container) {
+	public Scene2dHideTest (SteeringBehaviorsTest container) {
 		super(container, "Hide");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -72,12 +74,12 @@ public class Scene2dHideTest extends Scene2dSteeringTest {
 			SteeringActor obstacle = new SteeringActor(MathUtils.randomBoolean() ? container.badlogicSmall : container.cloud, false);
 			setRandomNonOverlappingPosition(obstacle, obstacles, 100);
 			obstacles.add(obstacle);
-			table.addActor(obstacle);
+			testTable.addActor(obstacle);
 		}
 
 		// Create target
 		target = new SteeringActor(container.target);
-		table.addActor(target);
+		testTable.addActor(target);
 
 		// Create hiding character
 		character = new SteeringActor(container.greenFish, false) {
@@ -115,7 +117,7 @@ public class Scene2dHideTest extends Scene2dSteeringTest {
 			.setWanderOffset(60) //
 			.setWanderOrientation(10) //
 			.setWanderRadius(40) //
-			.setWanderRate(MathUtils.PI / 5);
+			.setWanderRate(MathUtils.PI2 * 4);
 
 		// Sum up behaviors without truncating the result
 		BlendedSteering<Vector2> blendedSteeringSB = new BlendedSteering<Vector2>(character) //
@@ -126,7 +128,7 @@ public class Scene2dHideTest extends Scene2dSteeringTest {
 
 		character.setSteeringBehavior(blendedSteeringSB);
 
-		table.addActor(character);
+		testTable.addActor(character);
 
 		inputProcessor = new Scene2dTargetInputProcessor(target);
 
@@ -192,7 +194,7 @@ public class Scene2dHideTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 // if (drawDebug) {
 // Steerable<Vector2> steerable = characters.get(0);
 // shapeRenderer.begin(ShapeType.Line);
@@ -211,6 +213,7 @@ public class Scene2dHideTest extends Scene2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
 	}
 

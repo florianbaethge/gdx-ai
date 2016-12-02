@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class BlendedSteering<T extends Vector<T>> extends SteeringBehavior<T> {
 		super(owner);
 
 		this.list = new Array<BehaviorAndWeight<T>>();
-		this.steering = new SteeringAcceleration<T>(owner.newVector());
+		this.steering = new SteeringAcceleration<T>(newVector(owner));
 	}
 
 	/** Adds a steering behavior and its weight to the list.
@@ -86,7 +86,7 @@ public class BlendedSteering<T extends Vector<T>> extends SteeringBehavior<T> {
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> blendedSteering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> blendedSteering) {
 		// Clear the output to start with
 		blendedSteering.setZero();
 
@@ -96,7 +96,7 @@ public class BlendedSteering<T extends Vector<T>> extends SteeringBehavior<T> {
 			BehaviorAndWeight<T> bw = list.get(i);
 
 			// Calculate the behavior's steering
-			bw.behavior.steer(steering);
+			bw.behavior.calculateSteering(steering);
 
 			// Scale and add the steering to the accumulator
 			blendedSteering.mulAdd(steering, bw.weight);

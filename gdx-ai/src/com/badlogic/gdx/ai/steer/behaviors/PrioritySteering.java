@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,6 +68,9 @@ public class PrioritySteering<T extends Vector<T>> extends SteeringBehavior<T> {
 	 * considered if the first one does not return a result. */
 	protected Array<SteeringBehavior<T>> behaviors = new Array<SteeringBehavior<T>>();
 
+	/** The index of the behavior whose acceleration has been returned by the last evaluation of this priority steering. */
+	protected int selectedBehaviorIndex;
+
 	/** Creates a {@code PrioritySteering} behavior for the specified owner. The threshold is set to 0.001.
 	 * @param owner the owner of this behavior */
 	public PrioritySteering (Steerable<T> owner) {
@@ -92,17 +95,20 @@ public class PrioritySteering<T extends Vector<T>> extends SteeringBehavior<T> {
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		// We'll need epsilon squared later.
 		float epsilonSquared = epsilon * epsilon;
 
 		// Go through the behaviors until one has a large enough acceleration
 		int n = behaviors.size;
+		selectedBehaviorIndex = -1;
 		for (int i = 0; i < n; i++) {
+			selectedBehaviorIndex = i;
+
 			SteeringBehavior<T> behavior = behaviors.get(i);
 
 			// Calculate the behavior's steering
-			behavior.steer(steering);
+			behavior.calculateSteering(steering);
 
 			// If we're above the threshold return the current steering
 			if (steering.calculateSquareMagnitude() > epsilonSquared) return steering;
@@ -112,6 +118,12 @@ public class PrioritySteering<T extends Vector<T>> extends SteeringBehavior<T> {
 		// so return the small acceleration from the final behavior or zero if there are
 		// no behaviors in the list.
 		return n > 0 ? steering : steering.setZero();
+	}
+
+	/** Returns the index of the behavior whose acceleration has been returned by the last evaluation of this priority steering; -1
+	 * otherwise. */
+	public int getSelectedBehaviorIndex () {
+		return selectedBehaviorIndex;
 	}
 
 	/** Returns the threshold of the steering acceleration magnitude below which a steering behavior is considered to have given no

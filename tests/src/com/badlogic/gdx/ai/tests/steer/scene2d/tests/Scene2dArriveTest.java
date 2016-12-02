@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
 import com.badlogic.gdx.ai.steer.behaviors.Arrive;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dTargetInputProcessor;
@@ -27,8 +27,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.utils.Align;
 
 /** A class to test and experiment with the {@link Arrive} behavior.
  * 
@@ -37,12 +37,14 @@ public class Scene2dArriveTest extends Scene2dSteeringTest {
 	SteeringActor character;
 	SteeringActor target;
 
-	public Scene2dArriveTest (SteeringBehaviorTest container) {
+	public Scene2dArriveTest (SteeringBehaviorsTest container) {
 		super(container, "Arrive");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		character = new SteeringActor(container.badlogicSmall, false);
 		target = new SteeringActor(container.target);
 		inputProcessor = new Scene2dTargetInputProcessor(target);
@@ -57,8 +59,8 @@ public class Scene2dArriveTest extends Scene2dSteeringTest {
 			.setDecelerationRadius(80);
 		character.setSteeringBehavior(arriveSB);
 
-		table.addActor(character);
-		table.addActor(target);
+		testTable.addActor(character);
+		testTable.addActor(target);
 
 		character.setPosition(container.stageWidth / 2, container.stageHeight / 2, Align.center);
 		target.setPosition(MathUtils.random(container.stageWidth), MathUtils.random(container.stageHeight), Align.center);
@@ -124,11 +126,12 @@ public class Scene2dArriveTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 	}
 
 	@Override
 	public void dispose () {
+		super.dispose();
 	}
 
 }

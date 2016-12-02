@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package com.badlogic.gdx.ai.steer.limiters;
 
 import com.badlogic.gdx.ai.steer.Limiter;
 
-/** A {@code NullLimiter} always throws {@link UnsupportedOperationException}. Typically it's used as the base class of partial
- * or immutable limiters.
+/** A {@code NullLimiter} always throws {@link UnsupportedOperationException}. Typically it's used as the base class of partial or
+ * immutable limiters.
  * 
  * @author davebaol */
 public class NullLimiter implements Limiter {
@@ -107,6 +107,18 @@ public class NullLimiter implements Limiter {
 	 * @throws UnsupportedOperationException always */
 	@Override
 	public void setMaxAngularAcceleration (float maxAngularAcceleration) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public float getZeroLinearSpeedThreshold () {
+		return 0.001f;
+	}
+
+	/** Guaranteed to throw UnsupportedOperationException.
+	 * @throws UnsupportedOperationException always */
+	@Override
+	public void setZeroLinearSpeedThreshold (float zeroLinearSpeedThreshold) {
 		throw new UnsupportedOperationException();
 	}
 }

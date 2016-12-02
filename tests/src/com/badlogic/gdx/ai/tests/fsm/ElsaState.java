@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.badlogic.gdx.ai.tests.fsm;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.fsm.State;
-import com.badlogic.gdx.ai.msg.MessageDispatcher;
+import com.badlogic.gdx.ai.msg.MessageManager;
 import com.badlogic.gdx.ai.msg.Telegram;
 import com.badlogic.gdx.math.MathUtils;
 
@@ -70,7 +70,7 @@ public enum ElsaState implements State<Elsa> {
 
 				// Send a delayed message myself so that I know when to take the
 				// stew out of the oven
-				MessageDispatcher.getInstance().dispatchMessage( //
+				MessageManager.getInstance().dispatchMessage( //
 					1.5f, // time delay
 					elsa, // sender ID
 					elsa, // receiver ID
@@ -95,13 +95,12 @@ public enum ElsaState implements State<Elsa> {
 		public boolean onMessage (Elsa elsa, Telegram telegram) {
 			if (telegram.message == MessageType.STEW_READY) {
 
-				System.out.println("Message received by " + elsa.getClass().getSimpleName() + " at time: "
-					+ MessageDispatcher.getCurrentTime());
+				talk(elsa, "Message STEW_READY received at time: " + GdxAI.getTimepiece().getTime());
 
 				talk(elsa, "StewReady! Lets eat");
 
 				// let hubby know the stew is ready
-				MessageDispatcher.getInstance().dispatchMessage( //
+				MessageManager.getInstance().dispatchMessage( //
 					0.0f, // no delay
 					elsa, elsa.bob, MessageType.STEW_READY, null);
 
@@ -133,8 +132,7 @@ public enum ElsaState implements State<Elsa> {
 
 			if (telegram.message == MessageType.HI_HONEY_I_M_HOME) {
 
-				System.out.println("Message handled by " + elsa.getClass().getSimpleName() + " at time: "
-					+ MessageDispatcher.getCurrentTime());
+				talk(elsa, "Message HI_HONEY_I_M_HOME handled at time: " + GdxAI.getTimepiece().getTime());
 
 				talk(elsa, "Hi honey. Let me make you some of mah fine country stew");
 
@@ -160,7 +158,7 @@ public enum ElsaState implements State<Elsa> {
 	}
 
 	protected void talk (Elsa elsa, String msg) {
-		Gdx.app.log(elsa.getClass().getSimpleName(), msg);
+		GdxAI.getLogger().info(elsa.getClass().getSimpleName(), msg);
 	}
 
 }

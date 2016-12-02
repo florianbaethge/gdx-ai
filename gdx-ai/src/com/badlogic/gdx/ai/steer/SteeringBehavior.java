@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.badlogic.gdx.ai.steer;
 
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** A {@code SteeringBehavior} calculates the linear and/or angular accelerations to be applied to its owner.
@@ -74,14 +75,16 @@ public abstract class SteeringBehavior<T extends Vector<T>> {
 	 * disabled the steering output is set to zero.
 	 * @param steering the steering acceleration to be calculated.
 	 * @return the calculated steering acceleration for chaining. */
-	public SteeringAcceleration<T> steer (SteeringAcceleration<T> steering) {
-		return isEnabled() ? calculateSteering(steering) : steering.setZero();
+	public SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+		return isEnabled() ? calculateRealSteering(steering) : steering.setZero();
 	}
 
 	/** Calculates the steering acceleration produced by this behavior and writes it to the given steering output.
+	 * <p>
+	 * This method is called by {@link #calculateSteering(SteeringAcceleration)} when this steering behavior is enabled.
 	 * @param steering the steering acceleration to be calculated.
 	 * @return the calculated steering acceleration for chaining. */
-	protected abstract SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering);
+	protected abstract SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering);
 
 	/** Returns the owner of this steering behavior. */
 	public Steerable<T> getOwner () {
@@ -122,5 +125,16 @@ public abstract class SteeringBehavior<T extends Vector<T>> {
 	/** Returns the actual limiter of this steering behavior. */
 	protected Limiter getActualLimiter () {
 		return limiter == null ? owner : limiter;
+	}
+
+	/** Utility method that creates a new vector.
+	 * <p>
+	 * This method is used internally to instantiate vectors of the correct type parameter {@code T}. This technique keeps the API
+	 * simple and makes the API easier to use with the GWT backend because avoids the use of reflection.
+	 * 
+	 * @param location the location whose position is used to create the new vector
+	 * @return the newly created vector */
+	protected T newVector (Location<T> location) {
+		return location.getPosition().cpy().setZero();
 	}
 }

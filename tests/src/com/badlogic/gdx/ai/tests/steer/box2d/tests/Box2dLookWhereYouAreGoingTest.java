@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import com.badlogic.gdx.ai.steer.behaviors.Arrive;
 import com.badlogic.gdx.ai.steer.behaviors.BlendedSteering;
 import com.badlogic.gdx.ai.steer.behaviors.LookWhereYouAreGoing;
 import com.badlogic.gdx.ai.steer.limiters.NullLimiter;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringEntity;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dTargetInputProcessor;
@@ -29,7 +29,6 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
@@ -44,26 +43,24 @@ public class Box2dLookWhereYouAreGoingTest extends Box2dSteeringTest {
 	Box2dSteeringEntity character;
 	Box2dSteeringEntity target;
 
-	private World world;
 	private Batch spriteBatch;
 
-	public Box2dLookWhereYouAreGoingTest (SteeringBehaviorTest container) {
+	public Box2dLookWhereYouAreGoingTest (SteeringBehaviorsTest container) {
 		super(container, "Look Where You're Going");
 	}
 
 	@Override
-	public void create (Table table) {
-		spriteBatch = new SpriteBatch();
+	public void create () {
+		super.create();
 
-		// Instantiate a new World with no gravity
-		world = createWorld();
+		spriteBatch = new SpriteBatch();
 
 		// Create character
 		character = createSteeringEntity(world, container.greenFish, true);
 		character.setMaxLinearSpeed(5);
-		character.setMaxLinearAcceleration(500);
-		character.setMaxAngularAcceleration(40);
-		character.setMaxAngularSpeed(15);
+		character.setMaxLinearAcceleration(100);
+		character.setMaxAngularAcceleration(2);
+		character.setMaxAngularSpeed(7);
 
 		// Create target
 		target = createSteeringEntity(world, container.target);
@@ -73,11 +70,11 @@ public class Box2dLookWhereYouAreGoingTest extends Box2dSteeringTest {
 		final LookWhereYouAreGoing<Vector2> lookWhereYouAreGoingSB = new LookWhereYouAreGoing<Vector2>(character) //
 			.setTimeToTarget(0.1f) //
 			.setAlignTolerance(0.001f) //
-			.setDecelerationRadius(MathUtils.PI);
+			.setDecelerationRadius(MathUtils.PI / 3);
 
 		final Arrive<Vector2> arriveSB = new Arrive<Vector2>(character, target) //
-			.setTimeToTarget(0.01f) //
-			.setArrivalTolerance(0.0002f) //
+			.setTimeToTarget(0.1f) //
+			.setArrivalTolerance(0.001f) //
 			.setDecelerationRadius(3);
 
 		BlendedSteering<Vector2> blendedSteering = new BlendedSteering<Vector2>(character) //
@@ -89,7 +86,7 @@ public class Box2dLookWhereYouAreGoingTest extends Box2dSteeringTest {
 		Table detailTable = new Table(container.skin);
 
 		detailTable.row();
-		addMaxAngularAccelerationController(detailTable, character, 0, 50, 1);
+		addMaxAngularAccelerationController(detailTable, character, 0, 10, .1f);
 
 		detailTable.row();
 		addMaxAngularSpeedController(detailTable, character, 0, 20, 1);
@@ -149,13 +146,16 @@ public class Box2dLookWhereYouAreGoingTest extends Box2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		float deltaTime = Gdx.graphics.getDeltaTime();
+	public void update () {
+		super.update();
 
-		world.step(deltaTime, 8, 3);
+		// Update the character
+		character.update(Gdx.graphics.getDeltaTime());
+	}
 
-		// Update and draw the character
-		character.update(deltaTime);
+	@Override
+	public void draw () {
+		// Draw the character and the target
 		spriteBatch.begin();
 		character.draw(spriteBatch);
 		target.draw(spriteBatch);
@@ -164,7 +164,7 @@ public class Box2dLookWhereYouAreGoingTest extends Box2dSteeringTest {
 
 	@Override
 	public void dispose () {
-		world.dispose();
+		super.dispose();
 		spriteBatch.dispose();
 	}
 

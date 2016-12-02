@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,22 @@
 package com.badlogic.gdx.ai.tests.steer.bullet.tests;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Ray;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.RaycastCollisionDetector;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.limiters.LinearAccelerationLimiter;
-import com.badlogic.gdx.ai.steer.rays.CentralRayWithWhiskersConfiguration;
-import com.badlogic.gdx.ai.steer.rays.ParallelSideRayConfiguration;
-import com.badlogic.gdx.ai.steer.rays.RayConfigurationBase;
-import com.badlogic.gdx.ai.steer.rays.SingleRayConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.CentralRayWithWhiskersConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.ParallelSideRayConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
+import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
+import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
+import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringUtils;
+import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
+import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
+import com.badlogic.gdx.ai.utils.Ray;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
@@ -42,13 +48,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
-import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
-import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
-import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
 
-/** A class to test and experiment with the {@link RaycastObstacleAvoidance} behavior. 
- * @author Daniel Holderbaum */
+/** A class to test and experiment with the {@link RaycastObstacleAvoidance} behavior.
+ * @author Daniel Holderbaum
+ * @author davebaol */
 public class BulletRaycastObstacleAvoidanceTest extends BulletSteeringTest {
 
 	SteeringBulletEntity character;
@@ -59,70 +62,51 @@ public class BulletRaycastObstacleAvoidanceTest extends BulletSteeringTest {
 	boolean drawDebug;
 	ShapeRenderer shapeRenderer;
 
-	private Vector3 tmp = new Vector3();
-
-	public BulletRaycastObstacleAvoidanceTest (SteeringBehaviorTest container) {
+	public BulletRaycastObstacleAvoidanceTest (SteeringBehaviorsTest container) {
 		super(container, "Raycast Obstacle Avoidance");
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void create (Table table) {
-		super.create(table);
+	public void create () {
+		super.create();
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
 
-		world.add("ground", 0f, 0f, 0f).setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
-			0.25f + 0.5f * (float)Math.random(), 1f);
+		world.add("ground", 0f, 0f, 0f).setColor(MathUtils.random(0.25f, 0.75f), MathUtils.random(0.25f, 0.75f),
+			MathUtils.random(0.25f, 0.75f), 1f);
 
-		BulletEntity wall1 = world.add("staticwall", -10f, 0f, 0f);
-		wall1.setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
-			0.25f + 0.5f * (float)Math.random(), 1f);
-		wall1.transform.rotate(Vector3.Y, 90);
-		wall1.body.setWorldTransform(wall1.transform);
-
-		BulletEntity wall2 = world.add("staticwall", 0f, 0f, -10f);
-		wall2.setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
-			0.25f + 0.5f * (float)Math.random(), 1f);
-
-		BulletEntity wall3 = world.add("staticwall", 10f, 0f, 0f);
-		wall3.setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
-			0.25f + 0.5f * (float)Math.random(), 1f);
-		wall3.transform.rotate(Vector3.Y, 90);
-		wall3.body.setWorldTransform(wall3.transform);
-
-		BulletEntity wall4 = world.add("staticwall", 0f, 0f, 10f);
-		wall4.setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
-			0.25f + 0.5f * (float)Math.random(), 1f);
+		createWalls();
 
 		BulletEntity characterBase = world.add("capsule", new Matrix4());
 
 		character = new SteeringBulletEntity(characterBase);
-		character.setMaxLinearAcceleration(1500);
-		character.setMaxLinearSpeed(250);
+		character.setMaxLinearAcceleration(100);
+		character.setMaxLinearSpeed(10);
 
-		rayConfigurations = new RayConfigurationBase[] {new SingleRayConfiguration<Vector3>(character, 3),
-			new ParallelSideRayConfiguration<Vector3>(character, 3, character.getBoundingRadius()),
-			new CentralRayWithWhiskersConfiguration<Vector3>(character, 3, 1.5f, 35 * MathUtils.degreesToRadians)};
+		float rayLength = 6;
+		rayConfigurations = new RayConfigurationBase[] {new SingleRayConfiguration<Vector3>(character, rayLength),
+			new ParallelSideRayConfiguration<Vector3>(character, rayLength, character.getBoundingRadius()),
+			new CentralRayWithWhiskersConfiguration<Vector3>(character, rayLength, rayLength / 2, 35 * MathUtils.degreesToRadians)};
 		rayConfigurationIndex = 0;
 		RaycastCollisionDetector<Vector3> raycastCollisionDetector = new BulletRaycastCollisionDetector(world.collisionWorld,
 			character.body);
 		raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<Vector3>(character, rayConfigurations[rayConfigurationIndex],
-			raycastCollisionDetector, 2);
+			raycastCollisionDetector, 7);
 
 		Wander<Vector3> wanderSB = new Wander<Vector3>(character) //
 			// Don't use Face internally because independent facing is off
 			.setFaceEnabled(false) //
 			// We don't need a limiter supporting angular components because Face is disabled
 			// No need to call setAlignTolerance, setDecelerationRadius and setTimeToTarget for the same reason
-			.setLimiter(new LinearAccelerationLimiter(1500)) //
-			.setWanderOffset(2) //
-			.setWanderOrientation(0) //
-			.setWanderRadius(1) //
-			.setWanderRate(MathUtils.PI / 5);
+			.setLimiter(new LinearAccelerationLimiter(10)) //
+			.setWanderOffset(10) //
+			.setWanderOrientation(1) //
+			.setWanderRadius(8) //
+			.setWanderRate(MathUtils.PI2 * 3.5f);
 
-		PrioritySteering<Vector3> prioritySteeringSB = new PrioritySteering<Vector3>(character, 0.0001f) //
+		PrioritySteering<Vector3> prioritySteeringSB = new PrioritySteering<Vector3>(character, 0.00001f) //
 			.add(raycastObstacleAvoidanceSB) //
 			.add(wanderSB);
 
@@ -131,7 +115,7 @@ public class BulletRaycastObstacleAvoidanceTest extends BulletSteeringTest {
 		Table detailTable = new Table(container.skin);
 
 		detailTable.row();
-		addMaxLinearAccelerationController(detailTable, character, 0, 20000, 100);
+		addMaxLinearAccelerationController(detailTable, character, 0, 200, 1);
 
 		detailTable.row();
 		final Label labelDistFromBoundary = new Label("Distance from Boundary ["
@@ -192,10 +176,15 @@ public class BulletRaycastObstacleAvoidanceTest extends BulletSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		character.update(Gdx.graphics.getDeltaTime());
+	public void update () {
+		character.update(GdxAI.getTimepiece().getDeltaTime());
 
-		super.render(true);
+		super.update();
+	}
+
+	@Override
+	public void draw () {
+		super.draw();
 
 		if (drawDebug) {
 			Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
@@ -205,7 +194,7 @@ public class BulletRaycastObstacleAvoidanceTest extends BulletSteeringTest {
 			shapeRenderer.setProjectionMatrix(camera.combined);
 			for (int i = 0; i < rays.length; i++) {
 				Ray<Vector3> ray = rays[i];
-				shapeRenderer.line(ray.origin, tmp.set(ray.origin).add(ray.direction));
+				shapeRenderer.line(ray.start, ray.end);
 			}
 			shapeRenderer.end();
 			Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
@@ -218,4 +207,20 @@ public class BulletRaycastObstacleAvoidanceTest extends BulletSteeringTest {
 		shapeRenderer.dispose();
 	}
 
+	private void createWalls () {
+		float side = 20; // Wall length
+		int sides = MathUtils.random(4, 12);
+		float angle = MathUtils.PI2 / sides;
+		float radius = side / (2 * MathUtils.sin(MathUtils.PI / sides));
+		float apothem = radius * MathUtils.cos(MathUtils.PI / sides);
+		Vector3 v = new Vector3();
+		for (int i = 0; i < sides; i++) {
+			float a = angle * i;
+			BulletSteeringUtils.angleToVector(v, a).scl(apothem);
+			BulletEntity wall = world.add("staticwall", v.x, 0, v.z);
+			wall.setColor(MathUtils.random(0.25f, 0.75f), MathUtils.random(0.25f, 0.75f), MathUtils.random(0.25f, 0.75f), 1f);
+			wall.transform.rotateRad(Vector3.Y, a + MathUtils.PI / 2);
+			wall.body.setWorldTransform(wall.transform);
+		}
+	}
 }

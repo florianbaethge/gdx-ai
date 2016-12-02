@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ai.steer.Limiter;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.SteeringTestBase;
 import com.badlogic.gdx.ai.tests.utils.bullet.BulletConstructor;
 import com.badlogic.gdx.ai.tests.utils.bullet.BulletWorld;
@@ -45,6 +45,7 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.collision.btCapsuleShape;
+import com.badlogic.gdx.physics.bullet.collision.btConeShape;
 import com.badlogic.gdx.physics.bullet.linearmath.LinearMath;
 import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw.DebugDrawModes;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -94,8 +95,15 @@ public abstract class BulletSteeringTest extends SteeringTestBase {
 
 	protected final static Vector3 tmpV1 = new Vector3(), tmpV2 = new Vector3();
 
-	public BulletSteeringTest (SteeringBehaviorTest container, String name) {
+	protected boolean spaceToMoveTarget;
+
+	public BulletSteeringTest (SteeringBehaviorsTest container, String name) {
 		super(container, "Bullet", name);
+	}
+
+	@Override
+	public String getHelpMessage() {
+		return spaceToMoveTarget ? "Keep SPACE pressed to move the target" : "";
 	}
 
 	public BulletWorld createWorld () {
@@ -106,12 +114,11 @@ public abstract class BulletSteeringTest extends SteeringTestBase {
 		BulletTargetInputProcessor bulletTargetInputProcessor = new BulletTargetInputProcessor(target, offset, viewport,
 			world.collisionWorld);
 		setInputProcessor(new InputMultiplexer(bulletTargetInputProcessor, cameraController));
-
-		container.helpMessage = "Keep SPACE pressed to move the target";
+		spaceToMoveTarget = true;
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
 		init();
 		environment = new Environment();
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.3f, 1.f));
@@ -169,6 +176,9 @@ public abstract class BulletSteeringTest extends SteeringTestBase {
 			ColorAttribute.createSpecular(Color.WHITE), FloatAttribute.createShininess(64f)), Usage.Position | Usage.Normal);
 		disposables.add(wallModel);
 
+		final Model coneModel = modelBuilder.createCone(1f, 2f, 1f, 10, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.YELLOW)), Usage.Position | Usage.Normal);
+		disposables.add(coneModel);
+
 		// Create a visual representation of the character.
 		// Note that we don't use the physics part of BulletEntity, we'll do that manually
 		final Texture texture = new Texture(Gdx.files.internal("data/badlogic.jpg"));
@@ -185,11 +195,18 @@ public abstract class BulletSteeringTest extends SteeringTestBase {
 		world.addConstructor("box", new BulletConstructor(boxModel, 1f)); // mass = 1kg: dynamic body
 		world.addConstructor("staticbox", new BulletConstructor(boxModel, 0f)); // mass = 0: static body
 		world.addConstructor("staticwall", new BulletConstructor(wallModel, 0f)); // mass = 0: static body
+		world.addConstructor("cone", new BulletConstructor(coneModel, 1f, new btConeShape(0.5f, 2f))); // mass = 1kg: dynamic body
 	}
 
 	@Override
-	public void render () {
-		render(true);
+	public void update () {
+		world.update();
+		cameraController.update();
+	}
+
+	@Override
+	public void draw () {
+		render(false);
 	}
 
 	public void render (boolean update) {
@@ -222,11 +239,6 @@ public abstract class BulletSteeringTest extends SteeringTestBase {
 		modelBatch.begin(camera);
 		world.render(modelBatch, environment);
 		modelBatch.end();
-	}
-
-	public void update () {
-		world.update();
-		cameraController.update();
 	}
 
 	@Override

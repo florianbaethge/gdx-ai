@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,14 @@
 
 package com.badlogic.gdx.ai.tests.steer.bullet.tests;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
-import com.badlogic.gdx.ai.steer.paths.LinePath;
-import com.badlogic.gdx.ai.steer.paths.LinePath.LinePathParam;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
+import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
+import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
+import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
@@ -35,10 +39,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Slider;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
-import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
-import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
-import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
 import com.badlogic.gdx.utils.Array;
 
 /** A class to test and experiment with the {@link FollowPath} behavior.
@@ -56,14 +56,14 @@ public class BulletFollowPathTest extends BulletSteeringTest {
 	final boolean openPath;
 	Slider pathOffset;
 
-	public BulletFollowPathTest (SteeringBehaviorTest container, boolean openPath) {
+	public BulletFollowPathTest (SteeringBehaviorsTest container, boolean openPath) {
 		super(container, "Follow " + (openPath ? "Open" : "Closed") + " Path");
 		this.openPath = openPath;
 	}
 
 	@Override
-	public void create (Table table) {
-		super.create(table);
+	public void create () {
+		super.create();
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -88,7 +88,7 @@ public class BulletFollowPathTest extends BulletSteeringTest {
 				}
 			}
 		};
-		character.setMaxLinearAcceleration(2000);
+		character.setMaxLinearAcceleration(100);
 		character.setMaxLinearSpeed(15);
 
 		wayPoints = createRandomPath(MathUtils.random(4, 16), 20, 20, 30, 30, 1.5f);
@@ -127,7 +127,7 @@ public class BulletFollowPathTest extends BulletSteeringTest {
 		addMaxLinearSpeedController(detailTable, character);
 
 		detailTable.row();
-		addMaxLinearAccelerationController(detailTable, character, 0, 20000, 100);
+		addMaxLinearAccelerationController(detailTable, character, 0, 200, 1);
 
 		detailTable.row();
 		final Label labelPredictionTime = new Label("Prediction Time [" + followPathSB.getPredictionTime() + " sec.]",
@@ -203,10 +203,15 @@ public class BulletFollowPathTest extends BulletSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		character.update(Gdx.graphics.getDeltaTime());
+	public void update () {
+		character.update(GdxAI.getTimepiece().getDeltaTime());
 
-		super.render(true);
+		super.update();
+	}
+
+	@Override
+	public void draw () {
+		super.draw();
 
 		if (drawDebug) {
 			// Draw path

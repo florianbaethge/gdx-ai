@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.badlogic.gdx.ai.tests.steer.bullet.tests;
 
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Collision;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Ray;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.RaycastCollisionDetector;
+import com.badlogic.gdx.ai.utils.Collision;
+import com.badlogic.gdx.ai.utils.Ray;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.bullet.collision.ClosestNotMeRayResultCallback;
 import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
@@ -27,13 +27,12 @@ import com.badlogic.gdx.physics.bullet.collision.btCollisionWorld;
 
 /** A 3D {@link RaycastCollisionDetector} to be used with bullet physics. It reports the closest collision which is not the
  * supplied "me" collision object.
- * @author Daniel Holderbaum */
+ * @author Daniel Holderbaum
+ * @author davebaol */
 public class BulletRaycastCollisionDetector implements RaycastCollisionDetector<Vector3> {
 
 	btCollisionWorld world;
 
-	Vector3 rayFrom = new Vector3();
-	Vector3 rayTo = new Vector3();
 	ClosestRayResultCallback callback;
 
 	public BulletRaycastCollisionDetector (btCollisionWorld world, btCollisionObject me) {
@@ -42,17 +41,22 @@ public class BulletRaycastCollisionDetector implements RaycastCollisionDetector<
 	}
 
 	@Override
+	public boolean collides (Ray<Vector3> ray) {
+		return findCollision(null, ray);
+	}
+
+	@Override
 	public boolean findCollision (Collision<Vector3> outputCollision, Ray<Vector3> inputRay) {
 		// reset because we reuse the callback
 		callback.setCollisionObject(null);
-		
-		rayFrom.set(inputRay.origin);
-		rayTo.set(rayFrom).add(inputRay.direction);
-		world.rayTest(rayFrom, rayTo, callback);
 
-		callback.getHitPointWorld(outputCollision.point);
-		callback.getHitNormalWorld(outputCollision.normal);
-		
+		world.rayTest(inputRay.start, inputRay.end, callback);
+
+		if (outputCollision != null) {
+			callback.getHitPointWorld(outputCollision.point);
+			callback.getHitNormalWorld(outputCollision.normal);
+		}
+
 		return callback.hasHit();
 	}
 

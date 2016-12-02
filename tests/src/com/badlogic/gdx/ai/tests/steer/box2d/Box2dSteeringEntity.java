@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
@@ -53,7 +54,7 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 		this.independentFacing = independentFacing;
 		this.boundingRadius = boundingRadius;
 		this.tagged = false;
-		
+
 		body.setUserData(this);
 	}
 
@@ -83,12 +84,17 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 
 	@Override
 	public Vector2 getPosition () {
-        return body.getPosition();
+		return body.getPosition();
 	}
 
 	@Override
 	public float getOrientation () {
 		return body.getAngle();
+	}
+
+	@Override
+	public void setOrientation (float orientation) {
+		body.setTransform(getPosition(), orientation);
 	}
 
 	@Override
@@ -117,20 +123,18 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 	}
 
 	@Override
-	public Vector2 newVector () {
-		return new Vector2();
+	public Location<Vector2> newLocation () {
+		return new Box2dLocation();
 	}
 
 	@Override
 	public float vectorToAngle (Vector2 vector) {
-		return (float)Math.atan2(-vector.x, vector.y);
+		return Box2dSteeringUtils.vectorToAngle(vector);
 	}
 
 	@Override
 	public Vector2 angleToVector (Vector2 outVector, float angle) {
-		outVector.x = -(float)Math.sin(angle);
-		outVector.y = (float)Math.cos(angle);
-		return outVector;
+		return Box2dSteeringUtils.angleToVector(outVector, angle);
 	}
 
 	public SteeringBehavior<Vector2> getSteeringBehavior () {
@@ -144,7 +148,7 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 	public void update (float deltaTime) {
 		if (steeringBehavior != null) {
 			// Calculate steering acceleration
-			steeringBehavior.steer(steeringOutput);
+			steeringBehavior.calculateSteering(steeringOutput);
 
 			/*
 			 * Here you might want to add a motor control layer filtering steering accelerations.
@@ -153,7 +157,7 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 			 * faster it moves, the slower it can turn (without going into a skid); it can brake much more quickly than it can
 			 * accelerate; and it only moves in the direction it is facing (ignoring power slides).
 			 */
-			
+
 			// Apply steering acceleration
 			applySteering(steeringOutput, deltaTime);
 		}
@@ -167,22 +171,22 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 
 		// Update position and linear velocity.
 		if (!steeringOutput.linear.isZero()) {
-			Vector2 force = steeringOutput.linear.scl(deltaTime);
-			body.applyForceToCenter(force, true);
+			// this method internally scales the force by deltaTime
+			body.applyForceToCenter(steeringOutput.linear, true);
 			anyAccelerations = true;
 		}
 
 		// Update orientation and angular velocity
 		if (isIndependentFacing()) {
 			if (steeringOutput.angular != 0) {
-				body.applyTorque(steeringOutput.angular * deltaTime, true);
+				// this method internally scales the torque by deltaTime
+				body.applyTorque(steeringOutput.angular, true);
 				anyAccelerations = true;
 			}
-		}
-		else {
+		} else {
 			// If we haven't got any velocity, then we can do nothing.
 			Vector2 linVel = getLinearVelocity();
-			if (!linVel.isZero(MathUtils.FLOAT_ROUNDING_ERROR)) {
+			if (!linVel.isZero(getZeroLinearSpeedThreshold())) {
 				float newOrientation = vectorToAngle(linVel);
 				body.setAngularVelocity((newOrientation - getAngularVelocity()) * deltaTime); // this is superfluous if independentFacing is always true
 				body.setTransform(body.getPosition(), newOrientation);
@@ -218,7 +222,7 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 	protected void wrapAround (float maxX, float maxY) {
 		float k = Float.POSITIVE_INFINITY;
 		Vector2 pos = body.getPosition();
-		
+
 		if (pos.x > maxX) k = pos.x = 0.0f;
 
 		if (pos.x < 0) k = pos.x = maxX;
@@ -226,9 +230,8 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 		if (pos.y < 0) k = pos.y = maxY;
 
 		if (pos.y > maxY) k = pos.y = 0.0f;
-		
-		if (k != Float.POSITIVE_INFINITY)
-			body.setTransform(pos, body.getAngle());
+
+		if (k != Float.POSITIVE_INFINITY) body.setTransform(pos, body.getAngle());
 	}
 
 	public void draw (Batch batch) {
@@ -288,5 +291,15 @@ public class Box2dSteeringEntity implements Steerable<Vector2> {
 	@Override
 	public void setMaxAngularAcceleration (float maxAngularAcceleration) {
 		this.maxAngularAcceleration = maxAngularAcceleration;
+	}
+
+	@Override
+	public float getZeroLinearSpeedThreshold () {
+		return 0.001f;
+	}
+
+	@Override
+	public void setZeroLinearSpeedThreshold (float value) {
+		throw new UnsupportedOperationException();
 	}
 }

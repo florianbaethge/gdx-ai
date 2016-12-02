@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package com.badlogic.gdx.ai.steer.behaviors;
 import com.badlogic.gdx.ai.steer.Limiter;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** {@code Interpose} behavior produces a steering force that moves the owner to a point along the imaginary line connecting two
@@ -69,7 +70,7 @@ public class Interpose<T extends Vector<T>> extends Arrive<T> {
 		this.agentB = agentB;
 		this.interpositionRatio = interpositionRatio;
 
-		this.internalTargetPosition = owner.newVector();
+		this.internalTargetPosition = newVector(owner);
 	}
 
 	/** Returns the first agent. */
@@ -111,7 +112,7 @@ public class Interpose<T extends Vector<T>> extends Arrive<T> {
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 		// First we need to figure out where the two agents are going to be at
 		// time T in the future. This is approximated by determining the time
 		// taken by the owner to reach the desired point between the 2 agents
@@ -164,7 +165,7 @@ public class Interpose<T extends Vector<T>> extends Arrive<T> {
 	}
 
 	@Override
-	public Interpose<T> setTarget (Steerable<T> target) {
+	public Interpose<T> setTarget (Location<T> target) {
 		this.target = target;
 		return this;
 	}

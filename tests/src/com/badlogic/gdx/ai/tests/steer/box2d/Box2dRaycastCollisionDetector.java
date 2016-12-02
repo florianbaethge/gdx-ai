@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
 
 package com.badlogic.gdx.ai.tests.steer.box2d;
 
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Collision;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Ray;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.RaycastCollisionDetector;
+import com.badlogic.gdx.ai.utils.Collision;
+import com.badlogic.gdx.ai.utils.Ray;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.RayCastCallback;
@@ -31,7 +32,6 @@ public class Box2dRaycastCollisionDetector implements RaycastCollisionDetector<V
 
 	World world;
 	Box2dRaycastCallback callback;
-	Vector2 inputRayEndPoint;
 
 	public Box2dRaycastCollisionDetector (World world) {
 		this(world, new Box2dRaycastCallback());
@@ -40,16 +40,19 @@ public class Box2dRaycastCollisionDetector implements RaycastCollisionDetector<V
 	public Box2dRaycastCollisionDetector (World world, Box2dRaycastCallback callback) {
 		this.world = world;
 		this.callback = callback;
-		this.inputRayEndPoint = new Vector2();
+	}
+
+	@Override
+	public boolean collides (Ray<Vector2> ray) {
+		return findCollision(null, ray);
 	}
 
 	@Override
 	public boolean findCollision (Collision<Vector2> outputCollision, Ray<Vector2> inputRay) {
 		callback.collided = false;
-		if (!inputRay.direction.isZero()) {
-			inputRayEndPoint.set(inputRay.origin).add(inputRay.direction);
+		if (!inputRay.start.epsilonEquals(inputRay.end, MathUtils.FLOAT_ROUNDING_ERROR)) {
 			callback.outputCollision = outputCollision;
-			world.rayCast(callback, inputRay.origin, inputRayEndPoint);
+			world.rayCast(callback, inputRay.start, inputRay.end);
 		}
 		return callback.collided;
 	}
@@ -63,7 +66,7 @@ public class Box2dRaycastCollisionDetector implements RaycastCollisionDetector<V
 
 		@Override
 		public float reportRayFixture (Fixture fixture, Vector2 point, Vector2 normal, float fraction) {
-			outputCollision.set(point, normal);
+			if (outputCollision != null) outputCollision.set(point, normal);
 			collided = true;
 			return fraction;
 		}

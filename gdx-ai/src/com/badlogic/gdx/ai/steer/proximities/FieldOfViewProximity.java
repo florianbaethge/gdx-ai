@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,24 @@
 
 package com.badlogic.gdx.ai.steer.proximities;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.Timepiece;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.math.Vector;
-import com.badlogic.gdx.utils.Array;
 
 /** {@code FieldOfViewProximity} emulates the peripheral vision of the owner as if it had eyes. Any agents contained in the
  * specified list that are within the field of view of the owner are considered owner's neighbors. The field of view is determined
  * by a radius and an angle in degrees.
+ * <p>
+ * Note that this implementation checks the AI time of the current frame through the {@link Timepiece#getTime()
+ * GdxAI.getTimepiece().getTime()} method in order to calculate neighbors only once per frame (assuming delta time is always
+ * greater than 0, if time has changed the frame has changed too). This means that
+ * <ul>
+ * <li>if you forget to {@link Timepiece#update(float) update the timepiece} on each frame the proximity instance will be
+ * calculated only the very first time, which is not what you want of course.</li>
+ * <li>ideally the timepiece should be updated before the proximity is updated by the {@link #findNeighbors(ProximityCallback)}
+ * method.</li>
+ * </ul>
  * 
  * @param <T> Type of vector, either 2D or 3D, implementing the {@link Vector} interface
  * 
@@ -37,7 +47,7 @@ public class FieldOfViewProximity<T extends Vector<T>> extends ProximityBase<T> 
 	protected float angle;
 
 	private float coneThreshold;
-	private long frameId;
+	private float lastTime;
 	private T ownerOrientation;
 	private T toAgent;
 
@@ -47,13 +57,13 @@ public class FieldOfViewProximity<T extends Vector<T>> extends ProximityBase<T> 
 	 * @param agents the agents
 	 * @param radius the radius of the cone area
 	 * @param angle the angle in radians of the cone area */
-	public FieldOfViewProximity (Steerable<T> owner, Array<? extends Steerable<T>> agents, float radius, float angle) {
+	public FieldOfViewProximity (Steerable<T> owner, Iterable<? extends Steerable<T>> agents, float radius, float angle) {
 		super(owner, agents);
 		this.radius = radius;
 		setAngle(angle);
-		this.frameId = -1;
-		this.ownerOrientation = owner.newVector();
-		this.toAgent = owner.newVector();
+		this.lastTime = 0;
+		this.ownerOrientation = owner.getPosition().cpy().setZero();
+		this.toAgent = owner.getPosition().cpy().setZero();
 	}
 
 	/** Returns the radius of this proximity. */
@@ -80,13 +90,13 @@ public class FieldOfViewProximity<T extends Vector<T>> extends ProximityBase<T> 
 	@Override
 	public int findNeighbors (ProximityCallback<T> callback) {
 		int neighborCount = 0;
-		int agentCount = agents.size;
 
-		// Check current frame id to avoid repeating calculations
+		// If the frame is new then avoid repeating calculations
 		// when this proximity is used by multiple group behaviors.
-		if (this.frameId != Gdx.graphics.getFrameId()) {
-			// Save the frame id
-			this.frameId = Gdx.graphics.getFrameId();
+		float currentTime = GdxAI.getTimepiece().getTime();
+		if (this.lastTime != currentTime) {
+			// Save the current time
+			this.lastTime = currentTime;
 
 			T ownerPosition = owner.getPosition();
 
@@ -94,8 +104,7 @@ public class FieldOfViewProximity<T extends Vector<T>> extends ProximityBase<T> 
 			owner.angleToVector(ownerOrientation, owner.getOrientation());
 
 			// Scan the agents searching for neighbors
-			for (int i = 0; i < agentCount; i++) {
-				Steerable<T> currentAgent = agents.get(i);
+			for (Steerable<T> currentAgent : agents) {
 
 				// Make sure the agent being examined isn't the owner
 				if (currentAgent != owner) {
@@ -129,8 +138,7 @@ public class FieldOfViewProximity<T extends Vector<T>> extends ProximityBase<T> 
 			}
 		} else {
 			// Scan the agents searching for tagged neighbors
-			for (int i = 0; i < agentCount; i++) {
-				Steerable<T> currentAgent = agents.get(i);
+			for (Steerable<T> currentAgent : agents) {
 
 				// Make sure the agent being examined isn't the owner and that
 				// it's tagged.

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.badlogic.gdx.ai.tests.steer.box2d.tests;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ai.steer.behaviors.Face;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringEntity;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dTargetInputProcessor;
@@ -26,7 +26,6 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Slider;
@@ -40,24 +39,22 @@ public class Box2dFaceTest extends Box2dSteeringTest {
 	Box2dSteeringEntity character;
 	Box2dSteeringEntity target;
 
-	private World world;
 	private Batch spriteBatch;
 
-	public Box2dFaceTest (SteeringBehaviorTest container) {
+	public Box2dFaceTest (SteeringBehaviorsTest container) {
 		super(container, "Face");
 	}
 
 	@Override
-	public void create (Table table) {
-		spriteBatch = new SpriteBatch();
+	public void create () {
+		super.create();
 
-		// Instantiate a new World with no gravity
-		world = createWorld();
+		spriteBatch = new SpriteBatch();
 
 		// Create character
 		character = createSteeringEntity(world, container.greenFish, true);
-		character.setMaxAngularAcceleration(100);
-		character.setMaxAngularSpeed(15);
+		character.setMaxAngularAcceleration(1);
+		character.setMaxAngularSpeed(7);
 
 		// Create target
 		target = createSteeringEntity(world, container.target);
@@ -65,18 +62,18 @@ public class Box2dFaceTest extends Box2dSteeringTest {
 		inputProcessor = new Box2dTargetInputProcessor(target);
 
 		final Face<Vector2> faceSB = new Face<Vector2>(character, target) //
-			.setTimeToTarget(0.1f) //
-			.setAlignTolerance(0.001f) //
-			.setDecelerationRadius(MathUtils.degreesToRadians * 180);
+			.setTimeToTarget(0.01f) //
+			.setAlignTolerance(0.0001f) //
+			.setDecelerationRadius(MathUtils.degreesToRadians * 120);
 		character.setSteeringBehavior(faceSB);
 
 		Table detailTable = new Table(container.skin);
 
 		detailTable.row();
-		addMaxAngularAccelerationController(detailTable, character, 0, 100, 1);
+		addMaxAngularAccelerationController(detailTable, character, 0, 10, .1f);
 
 		detailTable.row();
-		addMaxAngularSpeedController(detailTable, character, 0, 30, 1);
+		addMaxAngularSpeedController(detailTable, character, 0, 20, .5f);
 
 		detailTable.row();
 		final Label labelDecelerationRadius = new Label("Deceleration Radius [" + faceSB.getDecelerationRadius() + "]",
@@ -131,13 +128,16 @@ public class Box2dFaceTest extends Box2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		float deltaTime = Gdx.graphics.getDeltaTime();
+	public void update () {
+		super.update();
 
-		world.step(deltaTime, 8, 3);
+		// Update the character
+		character.update(Gdx.graphics.getDeltaTime());
+	}
 
-		// Update and draw the character
-		character.update(deltaTime);
+	@Override
+	public void draw () {
+		// Draw character and target
 		spriteBatch.begin();
 		character.draw(spriteBatch);
 		target.draw(spriteBatch);
@@ -146,7 +146,7 @@ public class Box2dFaceTest extends Box2dSteeringTest {
 
 	@Override
 	public void dispose () {
-		world.dispose();
+		super.dispose();
 		spriteBatch.dispose();
 	}
 

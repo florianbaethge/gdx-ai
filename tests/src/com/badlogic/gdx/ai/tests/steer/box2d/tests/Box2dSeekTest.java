@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,14 +18,13 @@ package com.badlogic.gdx.ai.tests.steer.box2d.tests;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ai.steer.behaviors.Seek;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringEntity;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dTargetInputProcessor;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 
 /** A class to test and experiment with the {@link Seek} behavior.
@@ -36,24 +35,22 @@ public class Box2dSeekTest extends Box2dSteeringTest {
 	Box2dSteeringEntity character;
 	Box2dSteeringEntity target;
 
-	private World world;
 	private Batch spriteBatch;
 
-	public Box2dSeekTest (SteeringBehaviorTest container) {
+	public Box2dSeekTest (SteeringBehaviorsTest container) {
 		super(container, "Seek");
 	}
 
 	@Override
-	public void create (Table table) {
-		spriteBatch = new SpriteBatch();
+	public void create () {
+		super.create();
 
-		// Instantiate a new World with no gravity
-		world = createWorld();
+		spriteBatch = new SpriteBatch();
 
 		// Create character
 		character = createSteeringEntity(world, container.greenFish);
-		character.setMaxLinearSpeed(4);
-		character.setMaxLinearAcceleration(200);
+		character.setMaxLinearSpeed(5);
+		character.setMaxLinearAcceleration(10);
 
 		// Create target
 		target = createSteeringEntity(world, container.target);
@@ -67,25 +64,28 @@ public class Box2dSeekTest extends Box2dSteeringTest {
 		Table detailTable = new Table(container.skin);
 
 		detailTable.row();
-		addMaxLinearAccelerationController(detailTable, character, 0, 1000, 1);
+		addMaxLinearAccelerationController(detailTable, character, 0, 200, 1);
 
 		detailTable.row();
 		addSeparator(detailTable);
 
 		detailTable.row();
-		addMaxLinearSpeedController(detailTable, character, 0, 30, 1);
+		addMaxLinearSpeedController(detailTable, character, 0, 30, .5f);
 
 		detailWindow = createDetailWindow(detailTable);
 	}
 
 	@Override
-	public void render () {
-		float deltaTime = Gdx.graphics.getDeltaTime();
+	public void update () {
+		super.update();
 
-		world.step(deltaTime, 8, 3);
+		// Update the character
+		character.update(Gdx.graphics.getDeltaTime());
+	}
 
-		// Update and draw the character
-		character.update(deltaTime);
+	@Override
+	public void draw () {
+		// Draw the character and the target
 		spriteBatch.begin();
 		character.draw(spriteBatch);
 		target.draw(spriteBatch);
@@ -94,7 +94,7 @@ public class Box2dSeekTest extends Box2dSteeringTest {
 
 	@Override
 	public void dispose () {
-		world.dispose();
+		super.dispose();
 		spriteBatch.dispose();
 	}
 

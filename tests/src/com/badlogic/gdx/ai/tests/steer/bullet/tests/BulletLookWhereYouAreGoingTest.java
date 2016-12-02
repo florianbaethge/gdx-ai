@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package com.badlogic.gdx.ai.tests.steer.bullet.tests;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
 import com.badlogic.gdx.ai.steer.behaviors.Arrive;
 import com.badlogic.gdx.ai.steer.behaviors.BlendedSteering;
 import com.badlogic.gdx.ai.steer.behaviors.LookWhereYouAreGoing;
 import com.badlogic.gdx.ai.steer.limiters.NullLimiter;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
 import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
@@ -43,13 +43,13 @@ public class BulletLookWhereYouAreGoingTest extends BulletSteeringTest {
 	SteeringBulletEntity character;
 	SteeringBulletEntity target;
 
-	public BulletLookWhereYouAreGoingTest (SteeringBehaviorTest container) {
+	public BulletLookWhereYouAreGoingTest (SteeringBehaviorsTest container) {
 		super(container, "Look Where You're Going");
 	}
 
 	@Override
-	public void create (Table table) {
-		super.create(table);
+	public void create () {
+		super.create();
 
 		BulletEntity ground = world.add("ground", 0f, 0f, 0f);
 		ground.setColor(0.25f + 0.5f * (float)Math.random(), 0.25f + 0.5f * (float)Math.random(),
@@ -74,11 +74,11 @@ public class BulletLookWhereYouAreGoingTest extends BulletSteeringTest {
 
 		final LookWhereYouAreGoing<Vector3> lookWhereYouAreGoingSB = new LookWhereYouAreGoing<Vector3>(character) //
 			.setAlignTolerance(.005f) //
-			.setDecelerationRadius(MathUtils.PI2 * 3f / 4f) //
-			.setTimeToTarget(.02f);
+			.setDecelerationRadius(MathUtils.PI) //
+			.setTimeToTarget(.1f);
 
 		Arrive<Vector3> arriveSB = new Arrive<Vector3>(character, target) //
-			.setTimeToTarget(0.01f) //
+			.setTimeToTarget(0.1f) //
 			.setArrivalTolerance(0.0002f) //
 			.setDecelerationRadius(3);
 
@@ -136,7 +136,7 @@ public class BulletLookWhereYouAreGoingTest extends BulletSteeringTest {
 			container.skin);
 		detailTable.add(labelTimeToTarget);
 		detailTable.row();
-		Slider timeToTarget = new Slider(0, 1, 0.01f, false, container.skin);
+		Slider timeToTarget = new Slider(0, 1, 0.1f, false, container.skin);
 		timeToTarget.setValue(lookWhereYouAreGoingSB.getTimeToTarget());
 		timeToTarget.addListener(new ChangeListener() {
 			@Override
@@ -152,10 +152,15 @@ public class BulletLookWhereYouAreGoingTest extends BulletSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		character.update(Gdx.graphics.getDeltaTime());
+	public void update () {
+		character.update(GdxAI.getTimepiece().getDeltaTime());
 
-		super.render(true);
+		super.update();
+	}
+
+	@Override
+	public void draw () {
+		super.draw();
 	}
 
 	@Override

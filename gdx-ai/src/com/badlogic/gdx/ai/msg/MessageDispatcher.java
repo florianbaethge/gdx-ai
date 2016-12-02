@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,75 +16,40 @@
 
 package com.badlogic.gdx.ai.msg;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.Timepiece;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import com.badlogic.gdx.utils.Pool;
-import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
 
-/** The MessageDispatcher is a singleton in charge of the creation, dispatch, and management of telegrams.
+/** A {@code MessageDispatcher} is in charge of the creation, dispatch, and management of telegrams.
  * 
  * @author davebaol */
-public class MessageDispatcher {
+public class MessageDispatcher implements Telegraph {
 
 	private static final String LOG_TAG = MessageDispatcher.class.getSimpleName();
 
-	private static final float NANOS_PER_SEC = 1000000000f;
+	private static final Pool<Telegram> POOL = new Pool<Telegram>(16) {
+		@Override
+		protected Telegram newObject () {
+			return new Telegram();
+		}
+	};
 
-	private static final MessageDispatcher instance = new MessageDispatcher();
+	private PriorityQueue<Telegram> queue;
 
-	private static final long START = TimeUtils.nanoTime();
+	private IntMap<Array<Telegraph>> msgListeners;
 
-	private PriorityQueue<Telegram> queue = new PriorityQueue<Telegram>();
-
-	private final Pool<Telegram> pool;
-
-	private IntMap<Array<Telegraph>> msgListeners = new IntMap<Array<Telegraph>>();
-
-	private IntMap<Array<TelegramProvider>> msgProviders = new IntMap<Array<TelegramProvider>>();
-
-	private long timeGranularity;
+	private IntMap<Array<TelegramProvider>> msgProviders;
 
 	private boolean debugEnabled;
 
-	/** Don't let anyone else instantiate this class */
-	private MessageDispatcher () {
-		this.pool = new Pool<Telegram>(64) {
-			protected Telegram newObject () {
-				return new Telegram();
-			}
-		};
-		setTimeGranularity(0.25f);
-	}
-
-	/** Returns the singleton instance of the message dispatcher. */
-	public static MessageDispatcher getInstance () {
-		return instance;
-	}
-
-	/** Returns the current time in nanoseconds.
-	 * <p>
-	 * This implementation returns the value of the system timer minus a constant value determined when this class was loaded the
-	 * first time in order to ensure it takes increasing values (for 2 ^ 63 nanoseconds, i.e. 292 years) since the time stamp is
-	 * used to order the telegrams in the queue. */
-	public static long getCurrentTime () {
-		return TimeUtils.nanoTime() - START;
-	}
-
-	/** Returns the time granularity. */
-	public float getTimeGranularity () {
-		return timeGranularity / NANOS_PER_SEC;
-	}
-
-	/** Sets the time granularity. Delayed telegrams having the same sender, recipient and message type are considered identical
-	 * when they belong to the same time slot. If time granularity is greater than 0 identical telegrams are not doubled into the
-	 * queue. This prevents many similar telegrams from bunching up in the queue and being delivered en masse, thus flooding an
-	 * agent with identical messages. To eliminate time granularity just set it to 0. */
-	public void setTimeGranularity (float timeGranularity) {
-		boolean uniqueness = timeGranularity > 0;
-		this.timeGranularity = uniqueness ? (long)(timeGranularity * NANOS_PER_SEC) : 0;
-		this.queue.setUniqueness(uniqueness);
+	/** Creates a {@code MessageDispatcher} */
+	public MessageDispatcher () {
+		this.queue = new PriorityQueue<Telegram>();
+		this.msgListeners = new IntMap<Array<Telegraph>>();
+		this.msgProviders = new IntMap<Array<TelegramProvider>>();
 	}
 
 	/** Returns true if debug mode is on; false otherwise. */
@@ -99,17 +64,7 @@ public class MessageDispatcher {
 
 	/** Registers a listener for the specified message code. Messages without an explicit receiver are broadcasted to all its
 	 * registered listeners.
-	 * @param msg the message code
 	 * @param listener the listener to add
-	 * @deprecated Use {@link #addListener(Telegraph, int)} instead. */
-	@Deprecated
-	public void addListener (int msg, Telegraph listener) {
-		addListener(listener, msg);
-	}
-
-	/** Registers a listener for the specified message code. Messages without an explicit receiver are broadcasted to all its
-	 * registered listeners.
-	 * @param listener the listener to add 
 	 * @param msg the message code */
 	public void addListener (Telegraph listener, int msg) {
 		Array<Telegraph> listeners = msgListeners.get(msg);
@@ -123,20 +78,20 @@ public class MessageDispatcher {
 		// Dispatch messages from registered providers
 		Array<TelegramProvider> providers = msgProviders.get(msg);
 		if (providers != null) {
-			for (int i = 0; i < providers.size; i++) {
+			for (int i = 0, n = providers.size; i < n; i++) {
 				TelegramProvider provider = providers.get(i);
 				Object info = provider.provideMessageInfo(msg, listener);
-				if (info != null) if (ClassReflection.isInstance(Telegraph.class, provider))
-					dispatchMessage(0, (Telegraph)provider, listener, msg, info);
-				else
-					dispatchMessage(0, null, listener, msg, info);
+				if (info != null) {
+					Telegraph sender = ClassReflection.isInstance(Telegraph.class, provider) ? (Telegraph)provider : null;
+					dispatchMessage(0, sender, listener, msg, info, false);
+				}
 			}
 		}
 	}
 
 	/** Registers a listener for a selection of message types. Messages without an explicit receiver are broadcasted to all its
 	 * registered listeners.
-	 *
+	 * 
 	 * @param listener the listener to add
 	 * @param msgs the message codes */
 	public void addListeners (Telegraph listener, int... msgs) {
@@ -166,16 +121,7 @@ public class MessageDispatcher {
 	}
 
 	/** Unregister the specified listener for the specified message code.
-	 * @param msg the message code
 	 * @param listener the listener to remove
-	 * @deprecated Use {@link #removeListener(Telegraph, int)} instead. */
-	@Deprecated
-	public void removeListener (int msg, Telegraph listener) {
-		removeListener(listener, msg);
-	}
-
-	/** Unregister the specified listener for the specified message code.
-	 * @param listener the listener to remove 
 	 * @param msg the message code */
 	public void removeListener (Telegraph listener, int msg) {
 		Array<Telegraph> listeners = msgListeners.get(msg);
@@ -219,7 +165,7 @@ public class MessageDispatcher {
 	}
 
 	/** Unregisters all the providers for the given message codes.
-	 *
+	 * 
 	 * @param msgs the message codes */
 	public void clearProviders (int... msgs) {
 		for (int msg : msgs)
@@ -234,7 +180,7 @@ public class MessageDispatcher {
 	/** Removes all the telegrams from the queue and releases them to the internal pool. */
 	public void clearQueue () {
 		for (int i = 0; i < queue.size(); i++) {
-			pool.free(queue.get(i));
+			POOL.free(queue.get(i));
 		}
 		queue.clear();
 	}
@@ -248,46 +194,110 @@ public class MessageDispatcher {
 
 	/** Sends an immediate message to all registered listeners, with no extra info.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(0, sender,
-	 * null, msg, null)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * null, null, msg, null, false)}
+	 * 
+	 * @param msg the message code */
+	public void dispatchMessage (int msg) {
+		dispatchMessage(0f, null, null, msg, null, false);
+	}
+
+	/** Sends an immediate message to all registered listeners, with no extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, null, msg, null, false)}
 	 * 
 	 * @param sender the sender of the telegram
 	 * @param msg the message code */
 	public void dispatchMessage (Telegraph sender, int msg) {
-		dispatchMessage(0f, sender, null, msg, null);
+		dispatchMessage(0f, sender, null, msg, null, false);
+	}
+
+	/** Sends an immediate message to all registered listeners, with no extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, null, msg, null, needsReturnReceipt)}
+	 * 
+	 * @param sender the sender of the telegram
+	 * @param msg the message code
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (Telegraph sender, int msg, boolean needsReturnReceipt) {
+		dispatchMessage(0f, sender, null, msg, null, needsReturnReceipt);
 	}
 
 	/** Sends an immediate message to all registered listeners, with extra info.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(0, sender,
-	 * null, msg, extraInfo)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * null, null, msg, extraInfo, false)}
+	 * 
+	 * @param msg the message code
+	 * @param extraInfo an optional object */
+	public void dispatchMessage (int msg, Object extraInfo) {
+		dispatchMessage(0f, null, null, msg, extraInfo, false);
+	}
+
+	/** Sends an immediate message to all registered listeners, with extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, null, msg, extraInfo, false)}
 	 * 
 	 * @param sender the sender of the telegram
 	 * @param msg the message code
 	 * @param extraInfo an optional object */
 	public void dispatchMessage (Telegraph sender, int msg, Object extraInfo) {
-		dispatchMessage(0f, sender, null, msg, extraInfo);
+		dispatchMessage(0f, sender, null, msg, extraInfo, false);
+	}
+
+	/** Sends an immediate message to all registered listeners, with extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, null, msg, extraInfo, needsReturnReceipt)}
+	 * 
+	 * @param sender the sender of the telegram
+	 * @param msg the message code
+	 * @param extraInfo an optional object
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (Telegraph sender, int msg, Object extraInfo, boolean needsReturnReceipt) {
+		dispatchMessage(0f, sender, null, msg, extraInfo, needsReturnReceipt);
 	}
 
 	/** Sends an immediate message to the specified receiver with no extra info. The receiver doesn't need to be a register listener
 	 * for the specified message code.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(0, sender,
-	 * receiver, msg, null)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, receiver, msg, null, false)}
 	 * 
 	 * @param sender the sender of the telegram
 	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
 	 *           registered for the specified message code
 	 * @param msg the message code */
 	public void dispatchMessage (Telegraph sender, Telegraph receiver, int msg) {
-		dispatchMessage(0f, sender, receiver, msg, null);
+		dispatchMessage(0f, sender, receiver, msg, null, false);
+	}
+
+	/** Sends an immediate message to the specified receiver with no extra info. The receiver doesn't need to be a register listener
+	 * for the specified message code.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, receiver, msg, null, needsReturnReceipt)}
+	 * 
+	 * @param sender the sender of the telegram
+	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
+	 *           registered for the specified message code
+	 * @param msg the message code
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (Telegraph sender, Telegraph receiver, int msg, boolean needsReturnReceipt) {
+		dispatchMessage(0f, sender, receiver, msg, null, needsReturnReceipt);
 	}
 
 	/** Sends an immediate message to the specified receiver with extra info. The receiver doesn't need to be a register listener
 	 * for the specified message code.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(0, sender,
-	 * receiver, msg, extraInfo)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, receiver, msg, extraInfo, false)}
 	 * 
 	 * @param sender the sender of the telegram
 	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
@@ -295,39 +305,108 @@ public class MessageDispatcher {
 	 * @param msg the message code
 	 * @param extraInfo an optional object */
 	public void dispatchMessage (Telegraph sender, Telegraph receiver, int msg, Object extraInfo) {
-		dispatchMessage(0f, sender, receiver, msg, extraInfo);
+		dispatchMessage(0f, sender, receiver, msg, extraInfo, false);
+	}
+
+	/** Sends an immediate message to the specified receiver with extra info. The receiver doesn't need to be a register listener
+	 * for the specified message code.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean) dispatchMessage(0,
+	 * sender, receiver, msg, extraInfo, needsReturnReceipt)}
+	 * 
+	 * @param sender the sender of the telegram
+	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
+	 *           registered for the specified message code
+	 * @param msg the message code
+	 * @param extraInfo an optional object
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (Telegraph sender, Telegraph receiver, int msg, Object extraInfo, boolean needsReturnReceipt) {
+		dispatchMessage(0f, sender, receiver, msg, extraInfo, needsReturnReceipt);
 	}
 
 	/** Sends a message to all registered listeners, with the specified delay but no extra info.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(delay,
-	 * sender, null, msg, null)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, null, null, msg, null, null)}
+	 * 
+	 * @param delay the delay in seconds
+	 * @param msg the message code */
+	public void dispatchMessage (float delay, int msg) {
+		dispatchMessage(delay, null, null, msg, null, false);
+	}
+
+	/** Sends a message to all registered listeners, with the specified delay but no extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, null, msg, null, false)}
 	 * 
 	 * @param delay the delay in seconds
 	 * @param sender the sender of the telegram
 	 * @param msg the message code */
 	public void dispatchMessage (float delay, Telegraph sender, int msg) {
-		dispatchMessage(delay, sender, null, msg, null);
+		dispatchMessage(delay, sender, null, msg, null, false);
+	}
+
+	/** Sends a message to all registered listeners, with the specified delay but no extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, null, msg, null, needsReturnReceipt)}
+	 * 
+	 * @param delay the delay in seconds
+	 * @param sender the sender of the telegram
+	 * @param msg the message code
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (float delay, Telegraph sender, int msg, boolean needsReturnReceipt) {
+		dispatchMessage(delay, sender, null, msg, null, needsReturnReceipt);
 	}
 
 	/** Sends a message to all registered listeners, with the specified delay and extra info.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(delay,
-	 * sender, null, msg, extraInfo)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, null, null, msg, extraInfo, false)}
+	 * 
+	 * @param delay the delay in seconds
+	 * @param msg the message code
+	 * @param extraInfo an optional object */
+	public void dispatchMessage (float delay, int msg, Object extraInfo) {
+		dispatchMessage(delay, null, null, msg, extraInfo, false);
+	}
+
+	/** Sends a message to all registered listeners, with the specified delay and extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, null, msg, extraInfo, false)}
 	 * 
 	 * @param delay the delay in seconds
 	 * @param sender the sender of the telegram
 	 * @param msg the message code
 	 * @param extraInfo an optional object */
 	public void dispatchMessage (float delay, Telegraph sender, int msg, Object extraInfo) {
-		dispatchMessage(delay, sender, null, msg, extraInfo);
+		dispatchMessage(delay, sender, null, msg, extraInfo, false);
+	}
+
+	/** Sends a message to all registered listeners, with the specified delay and extra info.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, null, msg, extraInfo, needsReturnReceipt)}
+	 * 
+	 * @param delay the delay in seconds
+	 * @param sender the sender of the telegram
+	 * @param msg the message code
+	 * @param extraInfo an optional object
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (float delay, Telegraph sender, int msg, Object extraInfo, boolean needsReturnReceipt) {
+		dispatchMessage(delay, sender, null, msg, extraInfo, needsReturnReceipt);
 	}
 
 	/** Sends a message to the specified receiver, with the specified delay but no extra info. The receiver doesn't need to be a
 	 * register listener for the specified message code.
 	 * <p>
-	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage(delay,
-	 * sender, receiver, msg, null)}
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, receiver, msg, null, false)}
 	 * 
 	 * @param delay the delay in seconds
 	 * @param sender the sender of the telegram
@@ -335,7 +414,40 @@ public class MessageDispatcher {
 	 *           registered for the specified message code
 	 * @param msg the message code */
 	public void dispatchMessage (float delay, Telegraph sender, Telegraph receiver, int msg) {
-		dispatchMessage(delay, sender, receiver, msg, null);
+		dispatchMessage(delay, sender, receiver, msg, null, false);
+	}
+
+	/** Sends a message to the specified receiver, with the specified delay but no extra info. The receiver doesn't need to be a
+	 * register listener for the specified message code.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, receiver, msg, null, needsReturnReceipt)}
+	 * 
+	 * @param delay the delay in seconds
+	 * @param sender the sender of the telegram
+	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
+	 *           registered for the specified message code
+	 * @param msg the message code
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (float delay, Telegraph sender, Telegraph receiver, int msg, boolean needsReturnReceipt) {
+		dispatchMessage(delay, sender, receiver, msg, null, needsReturnReceipt);
+	}
+
+	/** Sends a message to the specified receiver, with the specified delay but no extra info. The receiver doesn't need to be a
+	 * register listener for the specified message code.
+	 * <p>
+	 * This is a shortcut method for {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object, boolean)
+	 * dispatchMessage(delay, sender, receiver, msg, extraInfo, false)}
+	 * 
+	 * @param delay the delay in seconds
+	 * @param sender the sender of the telegram
+	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
+	 *           registered for the specified message code
+	 * @param msg the message code
+	 * @param extraInfo an optional object */
+	public void dispatchMessage (float delay, Telegraph sender, Telegraph receiver, int msg, Object extraInfo) {
+		dispatchMessage(delay, sender, receiver, msg, extraInfo, false);
 	}
 
 	/** Given a message, a receiver, a sender and any time delay, this method routes the message to the correct agents (if no delay)
@@ -345,66 +457,87 @@ public class MessageDispatcher {
 	 * @param receiver the receiver of the telegram; if it's {@code null} the telegram is broadcasted to all the receivers
 	 *           registered for the specified message code
 	 * @param msg the message code
-	 * @param extraInfo an optional object */
-	public void dispatchMessage (float delay, Telegraph sender, Telegraph receiver, int msg, Object extraInfo) {
+	 * @param extraInfo an optional object
+	 * @param needsReturnReceipt whether the return receipt is needed or not
+	 * @throws IllegalArgumentException if the sender is {@code null} and the return receipt is needed */
+	public void dispatchMessage (float delay, Telegraph sender, Telegraph receiver, int msg, Object extraInfo,
+		boolean needsReturnReceipt) {
+		if (sender == null && needsReturnReceipt)
+			throw new IllegalArgumentException("Sender cannot be null when a return receipt is needed");
 
 		// Get a telegram from the pool
-		Telegram telegram = pool.obtain();
+		Telegram telegram = POOL.obtain();
 		telegram.sender = sender;
 		telegram.receiver = receiver;
 		telegram.message = msg;
 		telegram.extraInfo = extraInfo;
+		telegram.returnReceiptStatus = needsReturnReceipt ? Telegram.RETURN_RECEIPT_NEEDED : Telegram.RETURN_RECEIPT_UNNEEDED;
 
 		// If there is no delay, route telegram immediately
 		if (delay <= 0.0f) {
-			if (debugEnabled)
-				Gdx.app.log(LOG_TAG, "Instant telegram dispatched at time: " + getCurrentTime() + " by " + sender + " for "
-					+ receiver + ". Msg is " + msg);
+
+			// TODO: should we set the timestamp here?
+			// telegram.setTimestamp(GdxAI.getTimepiece().getTime());
+
+			if (debugEnabled) {
+				float currentTime = GdxAI.getTimepiece().getTime();
+				GdxAI.getLogger().info(
+					LOG_TAG,
+					"Instant telegram dispatched at time: " + currentTime + " by " + sender + " for " + receiver
+						+ ". Message code is " + msg);
+			}
 
 			// Send the telegram to the recipient
 			discharge(telegram);
 		} else {
+			float currentTime = GdxAI.getTimepiece().getTime();
+
 			// Set the timestamp for the delayed telegram
-			long currentTime = getCurrentTime();
-			telegram.setTimestamp(currentTime + (long)(delay * NANOS_PER_SEC), timeGranularity);
+			telegram.setTimestamp(currentTime + delay);
 
 			// Put the telegram in the queue
 			boolean added = queue.add(telegram);
 
 			// Return it to the pool if has been rejected
-			if (!added) pool.free(telegram);
+			if (!added) POOL.free(telegram);
 
 			if (debugEnabled) {
 				if (added)
-					Gdx.app.log(LOG_TAG, "Delayed telegram from " + sender + " for " + receiver + " recorded at time "
-						+ getCurrentTime() + ". Msg is " + msg);
+					GdxAI.getLogger().info(
+						LOG_TAG,
+						"Delayed telegram from " + sender + " for " + receiver + " recorded at time " + currentTime
+							+ ". Message code is " + msg);
 				else
-					Gdx.app.log(LOG_TAG, "Delayed telegram from " + sender + " for " + receiver + " rejected by the queue. Msg is "
-						+ msg);
+					GdxAI.getLogger().info(LOG_TAG,
+						"Delayed telegram from " + sender + " for " + receiver + " rejected by the queue. Message code is " + msg);
 			}
 		}
 	}
 
-	/** Dispatches any telegrams with a timestamp that has expired. Any dispatched telegrams are removed from the queue.
+	/** Dispatches any delayed telegrams with a timestamp that has expired. Dispatched telegrams are removed from the queue.
 	 * <p>
-	 * This method must be called each time through the main game loop. */
-	public void dispatchDelayedMessages () {
-		if (queue.size() == 0) return;
+	 * This method must be called regularly from inside the main game loop to facilitate the correct and timely dispatch of any
+	 * delayed messages. Notice that the message dispatcher internally calls {@link Timepiece#getTime()
+	 * GdxAI.getTimepiece().getTime()} to get the current AI time and properly dispatch delayed messages. This means that
+	 * <ul>
+	 * <li>if you forget to {@link Timepiece#update(float) update the timepiece} the delayed messages won't be dispatched.</li>
+	 * <li>ideally the timepiece should be updated before the message dispatcher.</li>
+	 * </ul> */
+	public void update () {
+		float currentTime = GdxAI.getTimepiece().getTime();
 
-		// Get current time
-		long currentTime = getCurrentTime();
-
-		// Now peek at the queue to see if any telegrams need dispatching.
+		// Peek at the queue to see if any telegrams need dispatching.
 		// Remove all telegrams from the front of the queue that have gone
 		// past their time stamp.
-		do {
-			// Read the telegram from the front of the queue
-			final Telegram telegram = queue.peek();
+		Telegram telegram;
+		while ((telegram = queue.peek()) != null) {
+
+			// Exit loop if the telegram is in the future
 			if (telegram.getTimestamp() > currentTime) break;
 
 			if (debugEnabled) {
-				Gdx.app.log(LOG_TAG, "Queued telegram ready for dispatch: Sent to " + telegram.receiver + ". Msg is "
-					+ telegram.message);
+				GdxAI.getLogger().info(LOG_TAG,
+					"Queued telegram ready for dispatch: Sent to " + telegram.receiver + ". Message code is " + telegram.message);
 			}
 
 			// Send the telegram to the recipient
@@ -412,19 +545,35 @@ public class MessageDispatcher {
 
 			// Remove it from the queue
 			queue.poll();
-		} while (queue.size() > 0);
+		}
 
 	}
 
-	/** This method is used by {@link #dispatchMessage} or {@link #dispatchDelayedMessages}. It first calls the message handling
-	 * method of the receiving agents with the specified telegram then returns the telegram to the pool.
+	/** Scans the queue and passes pending messages to the given callback in any particular order.
+	 * <p>
+	 * Typically this method is used to save (serialize) pending messages and restore (deserialize and schedule) them back on game
+	 * loading.
+	 * @param callback The callback used to report pending messages individually. **/
+	public void scanQueue (PendingMessageCallback callback) {
+		float currentTime = GdxAI.getTimepiece().getTime();
+		int queueSize = queue.size();
+		for (int i = 0; i < queueSize; i++) {
+			Telegram telegram = queue.get(i);
+			callback.report(telegram.getTimestamp() - currentTime, telegram.sender, telegram.receiver, telegram.message,
+				telegram.extraInfo, telegram.returnReceiptStatus);
+		}
+	}
+
+	/** This method is used by {@link #dispatchMessage(float, Telegraph, Telegraph, int, Object) dispatchMessage} for immediate
+	 * telegrams and {@link #update(float) update} for delayed telegrams. It first calls the message handling method of the
+	 * receiving agents with the specified telegram then returns the telegram to the pool.
 	 * @param telegram the telegram to discharge */
 	private void discharge (Telegram telegram) {
 		if (telegram.receiver != null) {
 			// Dispatch the telegram to the receiver specified by the telegram itself
 			if (!telegram.receiver.handleMessage(telegram)) {
 				// Telegram could not be handled
-				if (debugEnabled) Gdx.app.log(LOG_TAG, "Message " + telegram.message + " not handled");
+				if (debugEnabled) GdxAI.getLogger().info(LOG_TAG, "Message " + telegram.message + " not handled");
 			}
 		} else {
 			// Dispatch the telegram to all the registered receivers
@@ -438,11 +587,45 @@ public class MessageDispatcher {
 				}
 			}
 			// Telegram could not be handled
-			if (debugEnabled && handledCount == 0) Gdx.app.log(LOG_TAG, "Message " + telegram.message + " not handled");
+			if (debugEnabled && handledCount == 0) GdxAI.getLogger().info(LOG_TAG, "Message " + telegram.message + " not handled");
 		}
 
-		// Release the telegram to the pool
-		pool.free(telegram);
+		if (telegram.returnReceiptStatus == Telegram.RETURN_RECEIPT_NEEDED) {
+			// Use this telegram to send the return receipt
+			telegram.receiver = telegram.sender;
+			telegram.sender = this;
+			telegram.returnReceiptStatus = Telegram.RETURN_RECEIPT_SENT;
+			discharge(telegram);
+		} else {
+			// Release the telegram to the pool
+			POOL.free(telegram);
+		}
+	}
+
+	/** Handles the telegram just received. This method always returns {@code false} since usually the message dispatcher never
+	 * receives telegrams. Actually, the message dispatcher implements {@link Telegraph} just because it can send return receipts.
+	 * @param msg The telegram
+	 * @return always {@code false}. */
+	@Override
+	public boolean handleMessage (Telegram msg) {
+		return false;
+	}
+
+	/** A {@code PendingMessageCallback} is used by the {@link MessageDispatcher#scanQueue(PendingMessageCallback) scanQueue} method
+	 * of the {@link MessageDispatcher} to report its pending messages individually.
+	 * 
+	 * @author davebaol */
+	public interface PendingMessageCallback {
+
+		/** Reports a pending message.
+		 * @param delay The remaining delay in seconds
+		 * @param sender The message sender
+		 * @param receiver The message receiver
+		 * @param message The message code
+		 * @param extraInfo Any additional information that may accompany the message
+		 * @param returnReceiptStatus The return receipt status of the message */
+		public void report (float delay, Telegraph sender, Telegraph receiver, int message, Object extraInfo,
+			int returnReceiptStatus);
 	}
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +19,18 @@ package com.badlogic.gdx.ai.tests.steer.box2d.tests;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.Ray;
-import com.badlogic.gdx.ai.steer.behaviors.RaycastObstacleAvoidance.RaycastCollisionDetector;
 import com.badlogic.gdx.ai.steer.behaviors.Wander;
 import com.badlogic.gdx.ai.steer.limiters.LinearAccelerationLimiter;
-import com.badlogic.gdx.ai.steer.rays.CentralRayWithWhiskersConfiguration;
-import com.badlogic.gdx.ai.steer.rays.ParallelSideRayConfiguration;
-import com.badlogic.gdx.ai.steer.rays.RayConfigurationBase;
-import com.badlogic.gdx.ai.steer.rays.SingleRayConfiguration;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.steer.utils.rays.CentralRayWithWhiskersConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.ParallelSideRayConfiguration;
+import com.badlogic.gdx.ai.steer.utils.rays.RayConfigurationBase;
+import com.badlogic.gdx.ai.steer.utils.rays.SingleRayConfiguration;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dRaycastCollisionDetector;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringEntity;
 import com.badlogic.gdx.ai.tests.steer.box2d.Box2dSteeringTest;
+import com.badlogic.gdx.ai.utils.Ray;
+import com.badlogic.gdx.ai.utils.RaycastCollisionDetector;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -42,7 +42,6 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
@@ -64,8 +63,6 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 	boolean drawDebug;
 	ShapeRenderer shapeRenderer;
 
-	private World world;
-
 	private Body[] walls;
 	private int[] walls_hw;
 	private int[] walls_hh;
@@ -74,47 +71,48 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 	private Vector2 tmp2 = new Vector2();
 	private Batch spriteBatch;
 
-	public Box2dRaycastObstacleAvoidanceTest (SteeringBehaviorTest container) {
+	public Box2dRaycastObstacleAvoidanceTest (SteeringBehaviorsTest container) {
 		super(container, "Raycast Obstacle Avoidance");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
 		spriteBatch = new SpriteBatch();
 
-		// Instantiate a new World with no gravity
-		world = createWorld();
-
 		createRandomWalls(8);
 
 		character = createSteeringEntity(world, container.greenFish);
 		character.setMaxLinearSpeed(2);
-		character.setMaxLinearAcceleration(100);
+		character.setMaxLinearAcceleration(1);
 
 		@SuppressWarnings("unchecked")
 		RayConfigurationBase<Vector2>[] localRayConfigurations = new RayConfigurationBase[] {
 			new SingleRayConfiguration<Vector2>(character, Box2dSteeringTest.pixelsToMeters(100)),
-			new ParallelSideRayConfiguration<Vector2>(character, Box2dSteeringTest.pixelsToMeters(100), character.getBoundingRadius()),
-			new CentralRayWithWhiskersConfiguration<Vector2>(character, Box2dSteeringTest.pixelsToMeters(100), Box2dSteeringTest.pixelsToMeters(40), 35 * MathUtils.degreesToRadians)};
+			new ParallelSideRayConfiguration<Vector2>(character, Box2dSteeringTest.pixelsToMeters(100),
+				character.getBoundingRadius()),
+			new CentralRayWithWhiskersConfiguration<Vector2>(character, Box2dSteeringTest.pixelsToMeters(100),
+				Box2dSteeringTest.pixelsToMeters(40), 35 * MathUtils.degreesToRadians)};
 		rayConfigurations = localRayConfigurations;
 		rayConfigurationIndex = 0;
 		RaycastCollisionDetector<Vector2> raycastCollisionDetector = new Box2dRaycastCollisionDetector(world);
 		raycastObstacleAvoidanceSB = new RaycastObstacleAvoidance<Vector2>(character, rayConfigurations[rayConfigurationIndex],
-			raycastCollisionDetector, Box2dSteeringTest.pixelsToMeters(50));
+			raycastCollisionDetector, Box2dSteeringTest.pixelsToMeters(1000));
 
 		Wander<Vector2> wanderSB = new Wander<Vector2>(character) //
 			// Don't use Face internally because independent facing is off
 			.setFaceEnabled(false) //
 			// We don't need a limiter supporting angular components because Face is not used
 			// No need to call setAlignTolerance, setDecelerationRadius and setTimeToTarget for the same reason
-			.setLimiter(new LinearAccelerationLimiter(10)) //
-			.setWanderOffset(60) //
-			.setWanderOrientation(10) //
-			.setWanderRadius(40) //
-			.setWanderRate(MathUtils.PI / 5);
+			.setLimiter(new LinearAccelerationLimiter(4)) //
+			.setWanderOffset(3) //
+			.setWanderOrientation(5) //
+			.setWanderRadius(1) //
+			.setWanderRate(MathUtils.PI2 * 4);
 
 		PrioritySteering<Vector2> prioritySteeringSB = new PrioritySteering<Vector2>(character, 0.0001f) //
 			.add(raycastObstacleAvoidanceSB) //
@@ -127,14 +125,14 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 		Table detailTable = new Table(container.skin);
 
 		detailTable.row();
-		addMaxLinearAccelerationController(detailTable, character, 0, 2000, 1);
+		addMaxLinearAccelerationController(detailTable, character, 0, 30, .5f);
 
 		detailTable.row();
 		final Label labelDistFromBoundary = new Label("Distance from Boundary ["
 			+ raycastObstacleAvoidanceSB.getDistanceFromBoundary() + "]", container.skin);
 		detailTable.add(labelDistFromBoundary);
 		detailTable.row();
-		Slider distFromBoundary = new Slider(0, 5, .1f, false, container.skin);
+		Slider distFromBoundary = new Slider(0, 60, 1f, false, container.skin);
 		distFromBoundary.setValue(raycastObstacleAvoidanceSB.getDistanceFromBoundary());
 		distFromBoundary.addListener(new ChangeListener() {
 			@Override
@@ -189,11 +187,15 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		float deltaTime = Gdx.graphics.getDeltaTime();
+	public void update () {
+		super.update();
 
-		world.step(deltaTime, 8, 3);
+		// Update the character
+		character.update(Gdx.graphics.getDeltaTime());
+	}
 
+	@Override
+	public void draw () {
 		// Draw the walls
 		for (int i = 0; i < walls.length; i++) {
 			renderBox(shapeRenderer, walls[i], walls_hw[i], walls_hh[i]);
@@ -207,10 +209,10 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 			shapeRenderer.setTransformMatrix(transform);
 			for (int i = 0; i < rays.length; i++) {
 				Ray<Vector2> ray = rays[i];
-				tmp.set(ray.origin);
+				tmp.set(ray.start);
 				tmp.x = Box2dSteeringTest.metersToPixels(tmp.x);
 				tmp.y = Box2dSteeringTest.metersToPixels(tmp.y);
-				tmp2.set(ray.origin).add(ray.direction);
+				tmp2.set(ray.end);
 				tmp2.x = Box2dSteeringTest.metersToPixels(tmp2.x);
 				tmp2.y = Box2dSteeringTest.metersToPixels(tmp2.y);
 				shapeRenderer.line(tmp, tmp2);
@@ -218,8 +220,7 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 			shapeRenderer.end();
 		}
 
-		// Update and draw the character
-		character.update(deltaTime);
+		// Draw the character
 		spriteBatch.begin();
 		character.draw(spriteBatch);
 		spriteBatch.end();
@@ -227,12 +228,12 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 
 	@Override
 	public void dispose () {
+		super.dispose();
 		shapeRenderer.dispose();
-		world.dispose();
 		spriteBatch.dispose();
 	}
 
-	private void createRandomWalls(int n) {
+	private void createRandomWalls (int n) {
 		PolygonShape groundPoly = new PolygonShape();
 
 		BodyDef groundBodyDef = new BodyDef();
@@ -241,18 +242,19 @@ public class Box2dRaycastObstacleAvoidanceTest extends Box2dSteeringTest {
 		FixtureDef fixtureDef = new FixtureDef();
 		fixtureDef.shape = groundPoly;
 		fixtureDef.filter.groupIndex = 0;
-		
+
 		walls = new Body[n];
 		walls_hw = new int[n];
 		walls_hh = new int[n];
 		for (int i = 0; i < n; i++) {
-			groundBodyDef.position.set(Box2dSteeringTest.pixelsToMeters(MathUtils.random(50, (int)container.stageWidth-50)), Box2dSteeringTest.pixelsToMeters(MathUtils.random(50, (int)container.stageHeight-50)));
+			groundBodyDef.position.set(Box2dSteeringTest.pixelsToMeters(MathUtils.random(50, (int)container.stageWidth - 50)),
+				Box2dSteeringTest.pixelsToMeters(MathUtils.random(50, (int)container.stageHeight - 50)));
 			walls[i] = world.createBody(groundBodyDef);
 			walls_hw[i] = (int)MathUtils.randomTriangular(20, 150);
 			walls_hh[i] = (int)MathUtils.randomTriangular(30, 80);
 			groundPoly.setAsBox(Box2dSteeringTest.pixelsToMeters(walls_hw[i]), Box2dSteeringTest.pixelsToMeters(walls_hh[i]));
 			walls[i].createFixture(fixtureDef);
-			
+
 		}
 		groundPoly.dispose();
 	}

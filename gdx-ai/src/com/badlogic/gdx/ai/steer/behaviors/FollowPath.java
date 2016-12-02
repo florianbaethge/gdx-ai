@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ package com.badlogic.gdx.ai.steer.behaviors;
 import com.badlogic.gdx.ai.steer.Limiter;
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
+import com.badlogic.gdx.ai.steer.utils.Path;
+import com.badlogic.gdx.ai.steer.utils.Path.PathParam;
+import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector;
 
 /** {@code FollowPath} behavior produces a linear acceleration that moves the agent along the given path. First it calculates the
@@ -88,11 +91,11 @@ public class FollowPath<T extends Vector<T>, P extends PathParam> extends Arrive
 
 		this.arriveEnabled = true;
 
-		this.internalTargetPosition = owner.newVector();
+		this.internalTargetPosition = newVector(owner);
 	}
 
 	@Override
-	protected SteeringAcceleration<T> calculateSteering (SteeringAcceleration<T> steering) {
+	protected SteeringAcceleration<T> calculateRealSteering (SteeringAcceleration<T> steering) {
 
 		// Predictive or non-predictive behavior?
 		T location = (predictionTime == 0) ?
@@ -221,7 +224,7 @@ public class FollowPath<T extends Vector<T>, P extends PathParam> extends Arrive
 	}
 
 	@Override
-	public FollowPath<T, P> setTarget (Steerable<T> target) {
+	public FollowPath<T, P> setTarget (Location<T> target) {
 		this.target = target;
 		return this;
 	}
@@ -243,9 +246,5 @@ public class FollowPath<T extends Vector<T>, P extends PathParam> extends Arrive
 		this.timeToTarget = timeToTarget;
 		return this;
 	}
-
-	//
-	// Nested interfaces
-	//
 
 }

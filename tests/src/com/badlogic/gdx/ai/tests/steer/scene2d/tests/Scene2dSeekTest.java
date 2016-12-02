@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,15 @@
 package com.badlogic.gdx.ai.tests.steer.scene2d.tests;
 
 import com.badlogic.gdx.ai.steer.behaviors.Seek;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.scene2d.SteeringActor;
 import com.badlogic.gdx.ai.tests.steer.scene2d.Scene2dTargetInputProcessor;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
+import com.badlogic.gdx.utils.Align;
+
 
 /** A class to test and experiment with the {@link Seek} behavior.
  * 
@@ -34,12 +35,14 @@ public class Scene2dSeekTest extends Scene2dSteeringTest {
 	SteeringActor character;
 	SteeringActor target;
 
-	public Scene2dSeekTest (SteeringBehaviorTest container) {
+	public Scene2dSeekTest (SteeringBehaviorsTest container) {
 		super(container, "Seek");
 	}
 
 	@Override
-	public void create (Table table) {
+	public void create () {
+		super.create();
+
 		character = new SteeringActor(container.badlogicSmall, false);
 		target = new SteeringActor(container.target);
 		inputProcessor = new Scene2dTargetInputProcessor(target);
@@ -50,8 +53,8 @@ public class Scene2dSeekTest extends Scene2dSteeringTest {
 		final Seek<Vector2> seekSB = new Seek<Vector2>(character, target);
 		character.setSteeringBehavior(seekSB);
 
-		table.addActor(character);
-		table.addActor(target);
+		testTable.addActor(character);
+		testTable.addActor(target);
 
 		character.setPosition(container.stageWidth / 2, container.stageHeight / 2, Align.center);
 		target.setPosition(MathUtils.random(container.stageWidth), MathUtils.random(container.stageHeight), Align.center);
@@ -71,11 +74,12 @@ public class Scene2dSeekTest extends Scene2dSteeringTest {
 	}
 
 	@Override
-	public void render () {
+	public void draw () {
 	}
 
 	@Override
 	public void dispose () {
+		super.dispose();
 	}
 
 }

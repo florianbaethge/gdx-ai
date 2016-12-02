@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ public class FullLimiter implements Limiter {
 	private float maxLinearSpeed;
 	private float maxAngularAcceleration;
 	private float maxAngularSpeed;
+	private float zeroLinearSpeedThreshold;
 
 	/** Creates a {@code FullLimiter}.
 	 * @param maxLinearAcceleration the maximum linear acceleration
@@ -78,5 +79,15 @@ public class FullLimiter implements Limiter {
 	@Override
 	public void setMaxAngularAcceleration (float maxAngularAcceleration) {
 		this.maxAngularAcceleration = maxAngularAcceleration;
+	}
+
+	@Override
+	public float getZeroLinearSpeedThreshold () {
+		return zeroLinearSpeedThreshold;
+	}
+
+	@Override
+	public void setZeroLinearSpeedThreshold (float zeroLinearSpeedThreshold) {
+		this.zeroLinearSpeedThreshold = zeroLinearSpeedThreshold;
 	}
 }

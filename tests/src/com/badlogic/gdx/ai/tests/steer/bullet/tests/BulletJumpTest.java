@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2011 See AUTHORS file.
+ * Copyright 2014 See AUTHORS file.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package com.badlogic.gdx.ai.tests.steer.bullet.tests;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.ai.msg.MessageDispatcher;
+import com.badlogic.gdx.ai.GdxAI;
+import com.badlogic.gdx.ai.msg.MessageManager;
 import com.badlogic.gdx.ai.msg.Telegram;
 import com.badlogic.gdx.ai.msg.Telegraph;
 import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
@@ -26,9 +26,9 @@ import com.badlogic.gdx.ai.steer.behaviors.Jump.GravityComponentHandler;
 import com.badlogic.gdx.ai.steer.behaviors.Jump.JumpCallback;
 import com.badlogic.gdx.ai.steer.behaviors.Jump.JumpDescriptor;
 import com.badlogic.gdx.ai.steer.limiters.LinearLimiter;
-import com.badlogic.gdx.ai.steer.paths.LinePath;
-import com.badlogic.gdx.ai.steer.paths.LinePath.LinePathParam;
-import com.badlogic.gdx.ai.tests.SteeringBehaviorTest;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath.LinePathParam;
+import com.badlogic.gdx.ai.tests.SteeringBehaviorsTest;
 import com.badlogic.gdx.ai.tests.steer.bullet.BulletSteeringTest;
 import com.badlogic.gdx.ai.tests.steer.bullet.SteeringBulletEntity;
 import com.badlogic.gdx.ai.tests.utils.bullet.BulletEntity;
@@ -81,13 +81,13 @@ public class BulletJumpTest extends BulletSteeringTest {
 	int airbornePlanarVelocityToUse = 0;
 	float runUpLength = 3.5f;
 
-	public BulletJumpTest (SteeringBehaviorTest container) {
+	public BulletJumpTest (SteeringBehaviorsTest container) {
 		super(container, "Jump");
 	}
 
 	@Override
-	public void create (Table table) {
-		super.create(table);
+	public void create () {
+		super.create();
 		drawDebug = true;
 
 		shapeRenderer = new ShapeRenderer();
@@ -124,7 +124,7 @@ public class BulletJumpTest extends BulletSteeringTest {
 				}
 			}
 		};
-		character.setMaxLinearAcceleration(8500);
+		character.setMaxLinearAcceleration(100);
 		character.setMaxLinearSpeed(5);
 
 		// Remove all stuff that causes jump failure
@@ -203,8 +203,7 @@ public class BulletJumpTest extends BulletSteeringTest {
 						return false;
 					}
 				};
-				MessageDispatcher.getInstance().setTimeGranularity(0);
-				MessageDispatcher.getInstance().dispatchMessage(time, telegraph, telegraph, 1);
+				MessageManager.getInstance().dispatchMessage(time, telegraph, telegraph, 1);
 			}
 
 		};
@@ -212,7 +211,7 @@ public class BulletJumpTest extends BulletSteeringTest {
 			.setMaxVerticalVelocity(9) //
 			.setTakeoffPositionTolerance(.3f) //
 			.setTakeoffVelocityTolerance(2f) //
-			.setTimeToTarget(.01f);
+			.setTimeToTarget(.1f);
 
 		// Setup the limiter for the run up
 		jumpSB.setLimiter(new LinearLimiter(Float.POSITIVE_INFINITY, character.getMaxLinearSpeed() * 3));
@@ -324,11 +323,16 @@ public class BulletJumpTest extends BulletSteeringTest {
 	}
 
 	@Override
-	public void render () {
-		MessageDispatcher.getInstance().dispatchDelayedMessages();
-		character.update(Gdx.graphics.getDeltaTime());
+	public void update () {
+		MessageManager.getInstance().update();
+		character.update(GdxAI.getTimepiece().getDeltaTime());
 
-		super.render(true);
+		super.update();
+	}
+
+	@Override
+	public void draw () {
+		super.draw();
 
 		if (drawDebug) {
 			// Draw path
@@ -354,7 +358,7 @@ public class BulletJumpTest extends BulletSteeringTest {
 	public void dispose () {
 		super.dispose();
 		shapeRenderer.dispose();
-		MessageDispatcher.getInstance().clear();
+		MessageManager.getInstance().clear();
 	}
 
 	private void setCharacterPositionOnPath () {
